@@ -54,6 +54,7 @@ public class GeneticoController {
     public ResponseEntity<Object> inicializar(@RequestParam(required = false) int tipoSimulacion) {
         camiones = new ArrayList<>();
         camiones = camionService.findAll(); // Se obtienen los camiones de la base de datos
+        System.out.println(tipoSimulacion);
         aco = new Genetico(camiones, tipoSimulacion);
         Map<String, String> okMap = new HashMap<>();
         okMap.put("mensaje", "Aco Inicializado");
@@ -143,7 +144,8 @@ public class GeneticoController {
     @PostMapping("aco/simulacionRuta/semanal")
     @ResponseBody
     public ResponseEntity<List<Camion>> simulacionRutaSemanal(@RequestParam(required = false) int anio,
-                                                              @RequestParam(required = false) int mes, @RequestParam(required = false) double timer,
+                                                              @RequestParam(required = false) int mes,
+                                                              @RequestParam(required = false) double timer,
                                                               @RequestParam(required = false) int minutosPorIteracion,
                                                               @RequestBody(required = false) List<Averia> averias) {
 
@@ -176,7 +178,6 @@ public class GeneticoController {
     @GetMapping("aco/simulacionRuta/bloqueo")
     @ResponseBody
     public ResponseEntity<List<Bloqueo>> obtenerBloqeos() {
-
         return ResponseEntity.ok(aco.getBloqueosActivos());
     }
 

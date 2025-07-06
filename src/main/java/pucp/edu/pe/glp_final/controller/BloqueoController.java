@@ -4,9 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Files;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -33,22 +30,19 @@ import pucp.edu.pe.glp_final.service.FileStorageService;
 public class BloqueoController {
 
     @Autowired
-    private Bloqueo bloqueo;
-
-    @Autowired
     private FileStorageService fileStorageService;
     @Autowired
     private BloqueoService bloqueoService;
 
     @PostMapping(value = "/bloqueos", consumes = "multipart/form-data")
     @ResponseBody
-    public ResponseEntity<List<Bloqueo>> getBloqueos(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<List<Bloqueo>> cargarBloqueos(@RequestParam("file") MultipartFile file) {
         try {
             // Guardamos el archivo
             fileStorageService.saveFile(file);
 
             // Leemos los bloqueos del archivo y los retornamos directamente
-            List<Bloqueo> bloqueos = bloqueo.leerArchivoBloqueo(file.getOriginalFilename());
+            List<Bloqueo> bloqueos = Bloqueo.leerArchivoBloqueo(file.getOriginalFilename());
             return ResponseEntity.ok(bloqueos);
 
         } catch (Exception e) {
@@ -60,11 +54,11 @@ public class BloqueoController {
     public ResponseEntity<Object> getBloqueoById(@PathVariable int id) {
         try {
             List<Bloqueo> todosLosBloqueos = new ArrayList<>();
-            List<String> archivosBloqueos = bloqueo.ObtenerNombresDeArchivosDeBloqueos();
+            List<String> archivosBloqueos = Bloqueo.obtenerNombresDeArchivosDeBloqueos();
 
             // Buscamos en todos los archivos
             for (String nombreArchivo : archivosBloqueos) {
-                List<Bloqueo> bloqueosArchivo = bloqueo.leerArchivoBloqueo(nombreArchivo);
+                List<Bloqueo> bloqueosArchivo = Bloqueo.leerArchivoBloqueo(nombreArchivo);
                 todosLosBloqueos.addAll(bloqueosArchivo);
             }
 
@@ -90,11 +84,11 @@ public class BloqueoController {
 
     @GetMapping("/bloqueos/nombre-bloqueos-archivos")
     @ResponseBody
-    public ResponseEntity<?> obtenerNombreBloqueosArchivo(){
-        Map<String,Object> response = new HashMap<>();
+    public ResponseEntity<?> obtenerNombreBloqueosArchivo() {
+        Map<String, Object> response = new HashMap<>();
         List<String> nombres = bloqueoService.obtenerNombresArchivosSubidos();
-        response.put("Mensaje","Nombres de archivos");
-        response.put("nombresBloqueos",nombres);
+        response.put("Mensaje", "Nombres de archivos");
+        response.put("nombresBloqueos", nombres);
         return ResponseEntity.ok(response);
     }
 
@@ -104,12 +98,7 @@ public class BloqueoController {
     public ResponseEntity<Object> uploadFile(@RequestParam("file") MultipartFile file) {
         Map<String, Object> response = new HashMap<>();
         try {
-            // Primero guardamos el archivo
-            //fileStorageService.saveFile(file);
-
-            // Leemos los bloqueos del archivo
-            // List<Bloqueo> bloqueos = bloqueo.leerArchivoBloqueo(file.getOriginalFilename());
-            List<Bloqueo> bloqueos =bloqueoService.saveBloqueoArchivo(file);
+            List<Bloqueo> bloqueos = bloqueoService.saveBloqueoArchivo(file);
             response.put("mensaje", "Se procesaron " + bloqueos.size() + " bloqueos correctamente");
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {

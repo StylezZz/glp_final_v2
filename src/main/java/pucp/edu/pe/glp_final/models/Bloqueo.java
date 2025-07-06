@@ -11,8 +11,6 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 import jakarta.persistence.*;
-import org.springframework.stereotype.Component;
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,9 +20,8 @@ import lombok.Setter;
 @NoArgsConstructor
 @Setter
 @Getter
-@Component
-@Table(name = "bloqueo")
 @Entity
+@Table(name = "bloqueo")
 public class Bloqueo {
     private static int contadorId = 1; // Contador estático para IDs
     @Id
@@ -43,12 +40,6 @@ public class Bloqueo {
     @Transient
     private List<NodoBloqueado> tramo;
 
-    @ManyToMany
-    @JoinTable(
-            name = "bloqueo_nodo",
-            joinColumns = @JoinColumn(name = "bloqueo_id"),
-            inverseJoinColumns = @JoinColumn(name = "nodo_id")
-    )
     public static Bloqueo leerBloqueo(String registro, int anio, int mes) {
         Bloqueo bloqueo = new Bloqueo();
 
@@ -95,8 +86,8 @@ public class Bloqueo {
             throw new IllegalArgumentException("Formato de coordenadas incorrecto");
         }
 
-        LocalDateTime fechaInicio = LocalDateTime.of(anio,mes,bloqueo.getDiaInicio(),bloqueo.getHoraInicio(),bloqueo.getMinutoInicio());
-        LocalDateTime fechaFin = LocalDateTime.of(anio,mes,bloqueo.getDiaFin(),bloqueo.getHoraFin(),bloqueo.getMinutoFin());
+        LocalDateTime fechaInicio = LocalDateTime.of(anio, mes, bloqueo.getDiaInicio(), bloqueo.getHoraInicio(), bloqueo.getMinutoInicio());
+        LocalDateTime fechaFin = LocalDateTime.of(anio, mes, bloqueo.getDiaFin(), bloqueo.getHoraFin(), bloqueo.getMinutoFin());
         bloqueo.setFechaInicio(fechaInicio);
         bloqueo.setFechaFin(fechaFin);
 
@@ -117,7 +108,7 @@ public class Bloqueo {
         return bloqueo;
     }
 
-    public List<Bloqueo> leerArchivoBloqueo(String nombreArchivo) {
+    public static List<Bloqueo> leerArchivoBloqueo(String nombreArchivo) {
         // Reiniciar el contador de IDs al leer un nuevo archivo
         contadorId = 1;
 
@@ -228,41 +219,42 @@ public class Bloqueo {
 
     /**
      * Devuelve la lista de nodos de la grilla que están bloqueados según los bloqueos activos.
+     *
      * @param bloqueos Lista de bloqueos a considerar.
      * @return Lista de nodos bloqueados.
      */
-    public static List<Nodo> NodosBloqueados(List<Bloqueo>bloqueos){
-        List<Nodo> nodosBloqueados =new ArrayList<>();
+    public static List<Nodo> NodosBloqueados(List<Bloqueo> bloqueos) {
+        List<Nodo> nodosBloqueados = new ArrayList<>();
 
-        for(Bloqueo bloqueo: bloqueos){
-            for(NodoBloqueado tramoBloqueo: bloqueo.getTramo()){
+        for (Bloqueo bloqueo : bloqueos) {
+            for (NodoBloqueado tramoBloqueo : bloqueo.getTramo()) {
                 //bloqueo horizontal
-                if(tramoBloqueo.getY_ini()==tramoBloqueo.getY_fin()){
+                if (tramoBloqueo.getY_ini() == tramoBloqueo.getY_fin()) {
                     // bloqueo derecho
-                    if(tramoBloqueo.getX_ini()<tramoBloqueo.getX_fin()){
-                        for(int i =tramoBloqueo.getX_ini();i<=tramoBloqueo.getX_fin();i++){
-                            Nodo nodo=new Nodo(i,tramoBloqueo.getY_ini());
+                    if (tramoBloqueo.getX_ini() < tramoBloqueo.getX_fin()) {
+                        for (int i = tramoBloqueo.getX_ini(); i <= tramoBloqueo.getX_fin(); i++) {
+                            Nodo nodo = new Nodo(i, tramoBloqueo.getY_ini());
                             nodosBloqueados.add(nodo);
 
                         }
-                    }else{
+                    } else {
                         // bloqueo lado izquierdo
-                        for(int i =tramoBloqueo.getX_fin();i<=tramoBloqueo.getX_ini();i++){
-                            Nodo nodo=new Nodo(i,tramoBloqueo.getY_ini());
+                        for (int i = tramoBloqueo.getX_fin(); i <= tramoBloqueo.getX_ini(); i++) {
+                            Nodo nodo = new Nodo(i, tramoBloqueo.getY_ini());
                             nodosBloqueados.add(nodo);
                         }
                     }
-                }else{
+                } else {
                     //bloqueo vertical arriba
-                    if(tramoBloqueo.getY_ini()<tramoBloqueo.getY_fin()){
-                        for(int i =tramoBloqueo.getY_ini();i<=tramoBloqueo.getY_fin();i++){
-                            Nodo nodo=new Nodo(tramoBloqueo.getX_ini(),i);
+                    if (tramoBloqueo.getY_ini() < tramoBloqueo.getY_fin()) {
+                        for (int i = tramoBloqueo.getY_ini(); i <= tramoBloqueo.getY_fin(); i++) {
+                            Nodo nodo = new Nodo(tramoBloqueo.getX_ini(), i);
                             nodosBloqueados.add(nodo);
                         }
-                    }else{
+                    } else {
                         // bloqueo abajo
-                        for(int i =tramoBloqueo.getY_fin();i<=tramoBloqueo.getY_ini();i++){
-                            Nodo nodo=new Nodo(tramoBloqueo.getX_ini(),i);
+                        for (int i = tramoBloqueo.getY_fin(); i <= tramoBloqueo.getY_ini(); i++) {
+                            Nodo nodo = new Nodo(tramoBloqueo.getX_ini(), i);
                             nodosBloqueados.add(nodo);
                         }
                     }
@@ -278,9 +270,10 @@ public class Bloqueo {
     /**
      * Devuelve los nombres de los archivos .txt en la carpeta 'data/bloqueos'
      * que cumplen con el patrón aaaamm.bloqueos.txt (ejemplo: 202501.bloqueos.txt).
+     *
      * @return Lista de nombres de archivos válidos.
      */
-    public List<String> ObtenerNombresDeArchivosDeBloqueos() {
+    public static List<String> obtenerNombresDeArchivosDeBloqueos() {
         String resourcesDirectoryPath = "src/main/java/com/plg/backend/data/bloqueos";
         System.out.println("=== DEBUG OBTENER NOMBRES DE ARCHIVOS ===");
         System.out.println("Buscando archivos en: " + resourcesDirectoryPath);

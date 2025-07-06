@@ -11,7 +11,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
-import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -109,7 +108,7 @@ public class Camion {
     }
 
     public double calcularDistancia() {
-        double distanciaKm = carga* 180 / peso;
+        double distanciaKm = carga * 180 / peso;
         return distanciaKm;
     }
 
@@ -123,10 +122,6 @@ public class Camion {
         this.route = new ArrayList<>();
     }
 
-    public void actualizarDistanciaRecorrida(double distancia) {
-        this.distanciaRecorrida += distancia;
-    }
-
     public void asignarPedido(Pedido pedido) {
         cargaAsignada += pedido.getCantidadGLP();
     }
@@ -136,42 +131,9 @@ public class Camion {
         // la capacidad
     }
 
-    public void asignarPosicion(NodePosition node){
+    public void asignarPosicion(NodePosition node) {
         this.ubicacionActual = node;
         route.add(node);
-    }
-
-    public static void setearInicio(List<Camion> camiones) {
-        for (Camion camion : camiones) {
-            camion.route.clear();
-            camion.cargaAsignada = 0;
-            camion.tiempoViaje = 0;
-            camion.ubicacionActual = null;
-
-        }
-
-    }
-
-    public void corregirRuta() {
-        for (int i = 0; i < route.size() - 1; i++) {
-            NodePosition currentNode = route.get(i);
-            NodePosition nexNode = route.get(i + 1);
-            if (currentNode.isDepot() && nexNode.isDepot()) {
-                this.route.remove(i);
-                i--;
-            }
-        }
-    }
-
-    public void corregirUltimoDeposito() {
-        if (!route.get(route.size()).isDepot()) {
-            this.route.add(route.get(0));
-        }
-    }
-
-    // Limpiar las rutas
-    public void clearRoute() {
-        route = new ArrayList<>();
     }
 
 }

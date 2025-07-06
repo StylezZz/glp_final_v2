@@ -76,7 +76,7 @@ public class SimulacionBloqueoController {
 
         List<Bloqueo> bloqueos = new ArrayList<>();
         Bloqueo prueba = new Bloqueo();
-        List<String> nombresArchivos = prueba.ObtenerNombresDeArchivosDeBloqueos();
+        List<String> nombresArchivos = prueba.obtenerNombresDeArchivosDeBloqueos();
 
         // Solo leemos el primer archivo si existe alguno
         if (!nombresArchivos.isEmpty()) {

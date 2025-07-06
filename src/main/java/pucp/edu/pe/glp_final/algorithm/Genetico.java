@@ -1041,14 +1041,4 @@ public class Genetico {
         }
     }
 
-    public List<NodoBloqueado> obtenerNodosBloqueados(List<Bloqueo> bloqueos) {
-        List<NodoBloqueado> nodosBloqueados = new ArrayList<>();
-
-        for (Bloqueo bloqueo : bloqueos) {
-            List<NodoBloqueado> tramoBloqueo = bloqueo.getTramo();
-            nodosBloqueados.addAll(tramoBloqueo);
-        }
-        return nodosBloqueados;
-    }
-
 }

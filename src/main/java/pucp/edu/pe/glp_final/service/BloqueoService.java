@@ -20,23 +20,20 @@ import pucp.edu.pe.glp_final.repository.BloqueoRepository;
 @Service
 public class BloqueoService {
 
-
-    @Autowired
-    private Bloqueo bloqueo;
     @Autowired
     private BloqueoRepository bloqueoRepository;
 
     //sube los archivos y id automaticamente, en teroia xDD
-    public List<Bloqueo> saveBloqueoArchivo(MultipartFile file){
+    public List<Bloqueo> saveBloqueoArchivo(MultipartFile file) {
         String nameFile = file.getOriginalFilename();
-        String anio = nameFile.substring(0,4);
-        String mes = nameFile.substring(4,6);
+        String anio = nameFile.substring(0, 4);
+        String mes = nameFile.substring(4, 6);
         List<Bloqueo> bloqueos = new ArrayList<>();
-        try{
+        try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()));
             String registro;
-            while((registro = reader.readLine()) != null && !registro.isBlank()){
-                Bloqueo bloqueo = Bloqueo.leerBloqueo(registro,Integer.parseInt(anio),Integer.parseInt(mes));
+            while ((registro = reader.readLine()) != null && !registro.isBlank()) {
+                Bloqueo bloqueo = Bloqueo.leerBloqueo(registro, Integer.parseInt(anio), Integer.parseInt(mes));
                 bloqueos.add(bloqueoRepository.save(bloqueo));
             }
         } catch (IOException e) {
@@ -47,22 +44,14 @@ public class BloqueoService {
 
 
     public List<Bloqueo> leerArchivoBloqueo(Path file) {
-
         List<Bloqueo> bloqueos = new ArrayList<>();
-
         String nombreArchivo = file.getFileName().toString();
-        int anio;
-        int mes;
-        if (nombreArchivo != null) {
-            anio = Integer.parseInt(nombreArchivo.substring(0, 4)); // Extraer los primeros 4 dígitos como año
-            mes = Integer.parseInt(nombreArchivo.substring(4, 6)); // Extraer los siguientes 2 dígitos como mes
-        } else {
-            return bloqueos;
-        }
+        int anio = Integer.parseInt(nombreArchivo.substring(0, 4)); // Extraer los primeros 4 dígitos como año
+        int mes = Integer.parseInt(nombreArchivo.substring(4, 6)); // Extraer los siguientes 2 dígitos como mes
         try (BufferedReader br = new BufferedReader(new InputStreamReader(Files.newInputStream(file)))) {
             String linea;
             while ((linea = br.readLine()) != null) {
-                bloqueo = bloqueo.leerBloqueo(linea, anio, mes);
+                Bloqueo bloqueo = Bloqueo.leerBloqueo(linea, anio, mes);
                 bloqueos.add(bloqueo);
             }
         } catch (IOException e) {

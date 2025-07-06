@@ -15,9 +15,7 @@ import pucp.edu.pe.glp_final.models.Averia;
 public class AveriaService {
 
     public List<Averia> lecturaArchivo(MultipartFile file) {
-
         List<Averia> averias = new ArrayList<>();
-
         try (BufferedReader br = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
             String linea;
             while ((linea = br.readLine()) != null) {
@@ -29,7 +27,6 @@ public class AveriaService {
             e.printStackTrace();
             return null;
         }
-
     }
 
 }

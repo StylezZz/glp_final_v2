@@ -15,8 +15,6 @@ import pucp.edu.pe.glp_final.repository.PedidoRepository;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -57,10 +55,6 @@ public class PedidoService {
         return pedidoRepository.findByfechaDeRegistroBetween(fechaInicio, fechaFin);
     }
 
-    public void saveAll(List<Pedido> pedidos) {
-        pedidoRepository.saveAll(pedidos);
-    }
-
     public void deleteById(Integer id) {
         pedidoRepository.deleteById(id);
     }
@@ -70,34 +64,33 @@ public class PedidoService {
     }
 
 
-    public List<Pedido> savePedidosArchivo(MultipartFile file){
+    public List<Pedido> savePedidosArchivo(MultipartFile file) {
         String nameFile = file.getOriginalFilename();
-        String anio = nameFile.substring(6,10);
-        String mes = nameFile.substring(10,12);
+        String anio = nameFile.substring(6, 10);
+        String mes = nameFile.substring(10, 12);
         List<Pedido> pedidos = new ArrayList<>();
-        try{
+        try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()));
             String registro;
-            while((registro = reader.readLine()) != null && !registro.isBlank()){
-                Pedido pedido = Pedido.leerRegistro(registro,Integer.parseInt(anio),Integer.parseInt(mes),0);
+            while ((registro = reader.readLine()) != null && !registro.isBlank()) {
+                Pedido pedido = Pedido.leerRegistro(registro, Integer.parseInt(anio), Integer.parseInt(mes), 0);
 
                 //La cagamos si no hay cliente ps, piensa ps chaNCHO
                 Optional<Cliente> clienteOptional = clientRepository.findById(pedido.getIdCliente());
                 Cliente cliente;
-                if(!clienteOptional.isPresent()){
+                if (!clienteOptional.isPresent()) {
                     //un formato para que despues se edam edotar
                     cliente = new Cliente();
                     cliente.setId(pedido.getIdCliente());
-                    cliente.setNombre("Cliente "+ pedido.getIdCliente());
-                    cliente.setCorreo("clienteNuevo"+pedido.getIdCliente()+"@glpsoftware.com");
+                    cliente.setNombre("Cliente " + pedido.getIdCliente());
+                    cliente.setCorreo("clienteNuevo" + pedido.getIdCliente() + "@glpsoftware.com");
                     cliente.setTelefono(9999999);
                     cliente.setTipo(TipoCliente.CONDOMINIOS); // podría añadir un tipo Nuevo
                     clientRepository.save(cliente);
-                }
-                else cliente = clienteOptional.get();
+                } else cliente = clienteOptional.get();
 
                 pedido.setCliente(cliente);
-                pedidos.add( pedidoRepository.save(pedido) );
+                pedidos.add(pedidoRepository.save(pedido));
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -105,39 +98,6 @@ public class PedidoService {
         return pedidos;
     }
 
-
-
-    public List<Pedido> lecturaArchivo(Path file) {
-
-        List<Pedido> pedidos = new ArrayList<>();
-        String nombreArchivo = file.getFileName().toString();
-        String yearString = "";
-        String monthString = "";
-        if (nombreArchivo != null) {
-            yearString = nombreArchivo.substring(6, 10); // Extrae "2023"
-            monthString = nombreArchivo.substring(10, 12); // Extrae "03"
-        } else {
-            return pedidos;
-        }
-
-        // Convertir las cadenas a valores enteros
-        int anio = Integer.parseInt(yearString);
-        int mes = Integer.parseInt(monthString);
-
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(Files.newInputStream(file)))) {
-            String linea;
-            while ((linea = br.readLine()) != null) {
-                Pedido pedido = Pedido.leerRegistro(linea, anio, mes, id);
-                pedidos.add(pedido);
-                id++;
-            }
-            return pedidos;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
-
-    }
 
     // Dado una Lista de pedidos devolver los pedidos de una semana dada el dia de
     // inicio
@@ -153,33 +113,6 @@ public class PedidoService {
             }
         }
         return pedidosSemana;
-    }
-
-    public List<Pedido> getPedidosDiario(List<Pedido> pedidos, int dia, int mes, int anio, int hora, int minuto) {
-        List<Pedido> pedidosDiario = new ArrayList<>();
-        LocalDateTime fechaInicio = LocalDateTime.of(anio, mes, dia, hora, minuto);
-        LocalDateTime fechaFin = fechaInicio.plusHours(24);
-
-        for (Pedido pedido : pedidos) {
-            LocalDateTime fechaPedido = pedido.getFechaDeRegistro();
-            if (!fechaPedido.isBefore(fechaInicio) && !fechaPedido.isAfter(fechaFin)) {
-                pedidosDiario.add(pedido);
-            }
-        }
-        return pedidosDiario;
-    }
-
-    public List<Pedido> getPedidosColapso(List<Pedido> pedidos, int dia, int mes, int anio) {
-        List<Pedido> pedidosColapso = new ArrayList<>();
-        LocalDateTime fechaInicio = LocalDateTime.of(anio, mes, dia, 0, 0);
-
-        for (Pedido pedido : pedidos) {
-            LocalDateTime fechaPedido = pedido.getFechaDeRegistro();
-            if (!fechaPedido.isBefore(fechaInicio)) {
-                pedidosColapso.add(pedido);
-            }
-        }
-        return pedidosColapso;
     }
 
     public List<Pedido> dividirPedidos(List<Pedido> pedidos, int tipoSimulacion) {
@@ -199,7 +132,7 @@ public class PedidoService {
                     demanda = demanda - cantidad;
                     pedidosCarga.add(pedido1);
                 }
-                if(demanda <= 25){
+                if (demanda <= 25) {
                     pedidosCarga.add(pedido);
                 }
 
