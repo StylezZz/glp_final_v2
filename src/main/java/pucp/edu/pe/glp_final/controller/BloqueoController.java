@@ -34,35 +34,38 @@ public class BloqueoController {
     @Autowired
     private BloqueoService bloqueoService;
 
+    // Endpoint para cargar bloqueos desde archivo
     @PostMapping(value = "/bloqueos", consumes = "multipart/form-data")
     @ResponseBody
     public ResponseEntity<List<Bloqueo>> cargarBloqueos(@RequestParam("file") MultipartFile file) {
         try {
-            // Guardamos el archivo
+            // Persistir archivo en sistema de archivos para referencia futura
             fileStorageService.saveFile(file);
 
-            // Leemos los bloqueos del archivo y los retornamos directamente
+            // Procesar archivo y extraer datos de bloqueos estructurados
             List<Bloqueo> bloqueos = Bloqueo.leerArchivoBloqueo(file.getOriginalFilename());
+            // Retornar bloqueos procesados para confirmación y uso inmediato
             return ResponseEntity.ok(bloqueos);
 
         } catch (Exception e) {
+            // Manejar errores de procesamiento y retornar lista vacía
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ArrayList<>());
         }
     }
-
+    // Busca un bloqueo por ID en todos los archivos de bloqueos
     @GetMapping("/bloqueos/{id}")
     public ResponseEntity<Object> getBloqueoById(@PathVariable int id) {
         try {
             List<Bloqueo> todosLosBloqueos = new ArrayList<>();
+            // Obtener lista de archivos de bloqueos disponibles
             List<String> archivosBloqueos = Bloqueo.obtenerNombresDeArchivosDeBloqueos();
-
-            // Buscamos en todos los archivos
+            // Consolidar bloqueos de todos los archivos cargados
             for (String nombreArchivo : archivosBloqueos) {
                 List<Bloqueo> bloqueosArchivo = Bloqueo.leerArchivoBloqueo(nombreArchivo);
                 todosLosBloqueos.addAll(bloqueosArchivo);
             }
 
-            // Buscamos el bloqueo con el ID especificado
+            // Buscar bloqueo específico por ID usando stream
             Bloqueo bloqueoEncontrado = todosLosBloqueos.stream()
                     .filter(b -> b.getId() == id)
                     .findFirst()
@@ -71,28 +74,33 @@ public class BloqueoController {
             if (bloqueoEncontrado != null) {
                 return ResponseEntity.ok(bloqueoEncontrado);
             } else {
+                // Construir respuesta de error cuando no se encuentra el bloqueo
                 Map<String, String> response = new HashMap<>();
                 response.put("mensaje", "No se encontró un bloqueo con el ID: " + id);
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
             }
         } catch (Exception e) {
+            // Manejar errores de sistema durante la búsqueda
             Map<String, String> response = new HashMap<>();
             response.put("mensaje", "Error al buscar el bloqueo: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 
+    // Obtiene la lista de nombres de archivos de bloqueos subidos
     @GetMapping("/bloqueos/nombre-bloqueos-archivos")
     @ResponseBody
     public ResponseEntity<?> obtenerNombreBloqueosArchivo() {
         Map<String, Object> response = new HashMap<>();
+        // Obtener lista de archivos de bloqueos desde el servicio
         List<String> nombres = bloqueoService.obtenerNombresArchivosSubidos();
+        // Construir respuesta estructurada
         response.put("Mensaje", "Nombres de archivos");
         response.put("nombresBloqueos", nombres);
         return ResponseEntity.ok(response);
     }
 
-    //Lectura de archivos de bloqueos
+     // Endpoint alternativo para lectura y procesamiento de archivos de bloqueos.
     @PostMapping(value = "/bloqueo/leer-bloqueos", consumes = "multipart/form-data")
     @ResponseBody
     public ResponseEntity<Object> uploadFile(@RequestParam("file") MultipartFile file) {

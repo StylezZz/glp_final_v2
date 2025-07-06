@@ -19,14 +19,18 @@ public class AveriaController {
 
     @Autowired
     private AveriaService averiaService;
-
+    // Lista de averias que se cargan
     private List<Averia> averias;
 
+    // Endpoint para cargar el archivo de averias
     @PostMapping("averia/upload")
     @ResponseBody
     public List<Averia> upload(@RequestParam("file") MultipartFile file) {
+        // Inicializar lista para nueva carga
         averias = new ArrayList<>();
+        // Procesar archivo y extraer datos de averías
         averias = averiaService.lecturaArchivo(file);
+        // Retornar averías procesadas para confirmación y uso en frontend
         return averias;
     }
 }
