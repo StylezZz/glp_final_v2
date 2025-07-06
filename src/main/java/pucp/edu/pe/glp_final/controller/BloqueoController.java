@@ -34,7 +34,7 @@ public class BloqueoController {
     @Autowired
     private BloqueoService bloqueoService;
 
-    @PostMapping(value = "/", consumes = "multipart/form-data")
+    @PostMapping(consumes = "multipart/form-data")
     @ResponseBody
     public ResponseEntity<List<Bloqueo>> cargarBloqueos(@RequestParam("file") MultipartFile file) {
         try {
@@ -92,7 +92,6 @@ public class BloqueoController {
         return ResponseEntity.ok(response);
     }
 
-    //Lectura de archivos de bloqueos
     @PostMapping(value = "/leer-bloqueos", consumes = "multipart/form-data")
     @ResponseBody
     public ResponseEntity<Object> uploadFile(@RequestParam("file") MultipartFile file) {
