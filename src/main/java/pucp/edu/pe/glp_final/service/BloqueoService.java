@@ -42,6 +42,10 @@ public class BloqueoService {
         return bloqueos;
     }
 
+    public List<Bloqueo> obtenerBloqueosPorAnioMes(int anio, int mes) {
+        return bloqueoRepository.findByAnioAndMes(anio, mes);
+    }
+
 
     public List<Bloqueo> leerArchivoBloqueo(Path file) {
         List<Bloqueo> bloqueos = new ArrayList<>();

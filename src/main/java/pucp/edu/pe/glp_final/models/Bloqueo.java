@@ -204,16 +204,11 @@ public class Bloqueo {
         return true; // Bloqueo activo
     }
 
-    // Devuelve los bloqueos activos en cierto momento
     public static List<Bloqueo> bloqueosActivos(List<Bloqueo> bloqueos, Calendar ahora) {
-
         List<Bloqueo> bloqueosActivos = new ArrayList<>();
-
-        for (Bloqueo bloqueo : bloqueos) {
-            if (bloqueo.estaActivo(ahora)) {
+        for (Bloqueo bloqueo : bloqueos)
+            if (bloqueo.estaActivo(ahora))
                 bloqueosActivos.add(bloqueo);
-            }
-        }
         return bloqueosActivos;
     }
 

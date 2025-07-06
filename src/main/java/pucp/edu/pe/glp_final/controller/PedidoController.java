@@ -1,9 +1,6 @@
 package pucp.edu.pe.glp_final.controller;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +27,7 @@ import pucp.edu.pe.glp_final.service.FileStorageService;
 import pucp.edu.pe.glp_final.service.PedidoService;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/pedidos")
 @Getter
 @Setter
 public class PedidoController {
@@ -43,52 +40,42 @@ public class PedidoController {
     @Autowired
     private FileStorageService storageService;
 
-    @GetMapping("/pedidos")
+    @GetMapping
     @ResponseBody
-    public ResponseEntity<Object> findAll(@RequestParam(required = false) List<Integer> dias,
-                                          @RequestParam(required = false) Integer anio, @RequestParam(required = false) Integer mesPedido) {
-        List<Pedido> pedidos;
+    public ResponseEntity<Object> findAll(
+            @RequestParam(required = false) Integer anio,
+            @RequestParam(required = false) Integer mesPedido,
+            @RequestParam(required = false) List<Integer> dias
+    ) {
         Map<String, Object> response = new HashMap<>();
-
         try {
-            if (dias != null && anio != null && mesPedido != null) {
-                // Si se proporcionan los parámetros, filtra los pedidos
-                pedidos = pedidoService.findByDiaInAndAnioMes(dias, anio, mesPedido);
-            } else {
-                // Si no se proporcionan parámetros, devuelve todos los pedidos
-                pedidos = pedidoService.findAll();
-            }
+            List<Pedido> pedidos = (dias == null || anio == null || mesPedido == null)
+                    ? pedidoService.obtenerTodos()
+                    : pedidoService.obtenerPedidosPorFecha(dias, anio, mesPedido);
 
-            // Ordenar por id antes de responder
-            pedidos = pedidos.stream()
-                    .sorted((p1, p2) -> Integer.compare(p1.getId(), p2.getId()))
-                    .toList();
+            String mensaje = pedidos.isEmpty()
+                    ? "Pedidos no encontrados para la fecha buscada"
+                    : "Para la fecha se encontraron " + pedidos.size() + " pedidos";
 
-            if (pedidos.isEmpty()) {
-                response.put("mensaje", "No se encontraron pedidos");
-                response.put("pedidos", new ArrayList<>());
-                return ResponseEntity.ok(response);
-            }
-
-            response.put("mensaje", "Se encontraron " + pedidos.size() + " pedidos con éxito");
+            response.put("mensaje", mensaje);
             response.put("pedidos", pedidos);
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            response.put("mensaje", "Error al obtener los pedidos");
+            response.put("mensaje", "Error en la consulta de pedidos");
             response.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 
-    @GetMapping("/pedidos/{id}")
+    @GetMapping("/{id}")
     @ResponseBody
     public Pedido findById(@PathVariable int id) {
-        return pedidoService.findById(id);
+        return pedidoService.obtenerPorId(id);
     }
 
     //Lectura de archivos de pedidos  SE GUARDA EN BD
-    @PostMapping(value = "/pedidos/leer-pedidos", consumes = "multipart/form-data")
+    @PostMapping(value = "/leer-pedidos", consumes = "multipart/form-data")
     @ResponseBody
     public ResponseEntity<Object> uploadFile(@RequestParam("file") MultipartFile file) {
         try {
@@ -108,18 +95,18 @@ public class PedidoController {
         }
     }
 
-    @GetMapping("/pedidos/nombre-pedidos-archivos")
+    @GetMapping("/nombre-pedidos-archivos")
     @ResponseBody
-    public ResponseEntity<?> obtenerNombrePedidosArchivo(){
-        Map<String,Object> response = new HashMap<>();
-        List<String> nombres = pedidoService.obtenerNombresArchivosSubidos();
-        response.put("Mensaje","Nombres de archivos");
-        response.put("nombresPedidos",nombres);
+    public ResponseEntity<?> obtenerNombrePedidosArchivo() {
+        Map<String, Object> response = new HashMap<>();
+        List<String> nombres = pedidoService.getMesesPedido();
+        response.put("Mensaje", "Nombres de archivos");
+        response.put("nombresPedidos", nombres);
         return ResponseEntity.ok(response);
     }
 
     //Lectura de archivos de pedidos, donde se guarda en la base de datos
-    @PostMapping(value = "/pedidos/upload/diario", consumes = "multipart/form-data")
+    @PostMapping(value = "/upload/diario", consumes = "multipart/form-data")
     @ResponseBody
     public ResponseEntity<Object> uploadFileDiario(@RequestParam("files") MultipartFile file) {
         try {
@@ -128,7 +115,7 @@ public class PedidoController {
 
             // Guardar los pedidos en la base de datos
             for (Pedido pedido : pedidos) {
-                pedidoService.save(pedido);
+                pedidoService.guardar(pedido);
             }
 
             Map<String, String> mapa = new HashMap<String, String>();
@@ -141,8 +128,7 @@ public class PedidoController {
         }
     }
 
-
-    @PostMapping("/pedidos")
+    @PostMapping("/")
     @ResponseBody
     public Pedido save(@RequestBody Pedido pedido) {
 
@@ -154,22 +140,22 @@ public class PedidoController {
         pedido.setFechaEntrega(fechaEntrega);
         pedido.setFecDia(LocalDateTime.now());
 
-        return pedidoService.save(pedido);
+        return pedidoService.guardar(pedido);
     }
 
-    @DeleteMapping("/pedidos/{id}")
+    @DeleteMapping("/{id}")
     @ResponseBody
     public void deleteById(@PathVariable int id) {
         pedidoService.deleteById(id);
     }
 
-    @PutMapping("/pedidos/{id}")
+    @PutMapping("/{id}")
     @ResponseBody
     public Pedido update(@RequestBody Pedido pedido) {
-        return pedidoService.save(pedido);
+        return pedidoService.guardar(pedido);
     }
 
-    @DeleteMapping("/pedidos")
+    @DeleteMapping
     @ResponseBody
     public ResponseEntity<Object> deleteAll() {
         try {
@@ -184,17 +170,16 @@ public class PedidoController {
         }
     }
 
-    @GetMapping("/pedidos/count")
+    @GetMapping("/count")
     @ResponseBody
     public ResponseEntity<Object> count() {
         Map<String, Object> response = new HashMap<>();
         try {
-            long totalPedidos = pedidoService.count();
-            response.put("mensaje", "Conteo realizado con éxito");
-            response.put("total", totalPedidos);
+            response.put("mensaje", "Pedidos totales");
+            response.put("total", pedidoService.contarPedidosTotales());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            response.put("mensaje", "Error al contar pedidos");
+            response.put("mensaje", "Error en la cuenta de pedidos");
             response.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }

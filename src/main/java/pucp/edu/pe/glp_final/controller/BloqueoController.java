@@ -24,7 +24,7 @@ import pucp.edu.pe.glp_final.service.BloqueoService;
 import pucp.edu.pe.glp_final.service.FileStorageService;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/bloqueos")
 @Getter
 @Setter
 public class BloqueoController {
@@ -34,7 +34,7 @@ public class BloqueoController {
     @Autowired
     private BloqueoService bloqueoService;
 
-    @PostMapping(value = "/bloqueos", consumes = "multipart/form-data")
+    @PostMapping(value = "/", consumes = "multipart/form-data")
     @ResponseBody
     public ResponseEntity<List<Bloqueo>> cargarBloqueos(@RequestParam("file") MultipartFile file) {
         try {
@@ -50,7 +50,7 @@ public class BloqueoController {
         }
     }
 
-    @GetMapping("/bloqueos/{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<Object> getBloqueoById(@PathVariable int id) {
         try {
             List<Bloqueo> todosLosBloqueos = new ArrayList<>();
@@ -82,7 +82,7 @@ public class BloqueoController {
         }
     }
 
-    @GetMapping("/bloqueos/nombre-bloqueos-archivos")
+    @GetMapping("/nombre-bloqueos-archivos")
     @ResponseBody
     public ResponseEntity<?> obtenerNombreBloqueosArchivo() {
         Map<String, Object> response = new HashMap<>();
@@ -93,7 +93,7 @@ public class BloqueoController {
     }
 
     //Lectura de archivos de bloqueos
-    @PostMapping(value = "/bloqueo/leer-bloqueos", consumes = "multipart/form-data")
+    @PostMapping(value = "/leer-bloqueos", consumes = "multipart/form-data")
     @ResponseBody
     public ResponseEntity<Object> uploadFile(@RequestParam("file") MultipartFile file) {
         Map<String, Object> response = new HashMap<>();

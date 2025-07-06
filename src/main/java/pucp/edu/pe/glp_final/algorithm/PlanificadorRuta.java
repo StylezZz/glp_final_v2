@@ -2,34 +2,33 @@ package pucp.edu.pe.glp_final.algorithm;
 
 import pucp.edu.pe.glp_final.models.Bloqueo;
 import pucp.edu.pe.glp_final.models.Camion;
-import pucp.edu.pe.glp_final.models.Nodo;
 import pucp.edu.pe.glp_final.models.Pedido;
+import pucp.edu.pe.glp_final.models.Nodo;
 
 import java.util.*;
 
+public class PlanificadorRuta {
 
-public class Astar {
-
-    public void encontrarCamino(Mapa gridGraph, NodePosition nodoInicial, NodePosition objetivo,
+    public void encontrarCamino(Mapa gridGraph, NodoMapa nodoInicial, NodoMapa objetivo,
                                 List<Bloqueo> bloqueos, int anio, int mes, Camion vehiculo, Pedido pedido,
                                 boolean inicio, int tipoSimulacion) {
-        PriorityQueue<NodePosition> colaPrioridad = new PriorityQueue<>(
+        PriorityQueue<NodoMapa> colaPrioridad = new PriorityQueue<>(
                 Comparator.comparingDouble(n -> n.getCostoTotal()));
-        Map<NodePosition, Double> costoRealAcumulado = new HashMap<>();
-        Set<NodePosition> nodosVisitados = new HashSet<>();
+        Map<NodoMapa, Double> costoRealAcumulado = new HashMap<>();
+        Set<NodoMapa> nodosVisitados = new HashSet<>();
 
         colaPrioridad.add(nodoInicial);
         costoRealAcumulado.put(nodoInicial, 0.0);
 
         while (!colaPrioridad.isEmpty()) {
-            NodePosition actual = colaPrioridad.poll();
+            NodoMapa actual = colaPrioridad.poll();
 
             if (actual.getX() == objetivo.getX() && actual.getY() == objetivo.getY()) {
                 // Se encontró el camino, reconstruir y devolver
 
-                if (pedido != null && actual.getPedidoRuta() == pedido) {
-                    actual.setPedidoRuta(pedido);
-                    actual.getPedidoRuta().setEntregado(true);
+                if (pedido != null && actual.getPedido() == pedido) {
+                    actual.setPedido(pedido);
+                    actual.getPedido().setEntregado(true);
                     reconstruirCamino(actual, vehiculo, pedido, anio, mes, tipoSimulacion);
 
                     break;
@@ -37,14 +36,14 @@ public class Astar {
                 reconstruirCamino(actual, vehiculo, pedido, anio, mes, tipoSimulacion);
 
                 if (pedido != null && pedido.isIsbloqueo()) {
-                    NodePosition nodoAnterior = new NodePosition(0, actual.getAntecesor().getX(),
-                            actual.getAntecesor().getY(), false);
-                    nodoAnterior.setAntecesor(actual);
-                    nodoAnterior.setStartTime(vehiculo.getUbicacionActual().getArriveTime());
+                    NodoMapa nodoAnterior = new NodoMapa(0, actual.getNodoPrevio().getX(),
+                            actual.getNodoPrevio().getY(), false);
+                    nodoAnterior.setNodoPrevio(actual);
+                    nodoAnterior.setTiempoInicio(vehiculo.getUbicacionActual().getTiempoFin());
                     if (tipoSimulacion == 1) {
-                        nodoAnterior.setArriveTime(vehiculo.getUbicacionActual().getArriveTime() + 1);
+                        nodoAnterior.setTiempoFin(vehiculo.getUbicacionActual().getTiempoFin() + 1);
                     } else {
-                        nodoAnterior.setArriveTime(vehiculo.getUbicacionActual().getArriveTime() + 1.2);
+                        nodoAnterior.setTiempoFin(vehiculo.getUbicacionActual().getTiempoFin() + 1.2);
                     }
                     nodoAnterior.setAnio(anio);
                     nodoAnterior.setMes(mes);
@@ -57,11 +56,11 @@ public class Astar {
 
             nodosVisitados.add(actual);
             if (tipoSimulacion == 1) {
-                actual.setArriveTime(actual.getStartTime() + 1);
+                actual.setTiempoFin(actual.getTiempoInicio() + 1);
             } else {
-                actual.setArriveTime(actual.getStartTime() + 1.2);
+                actual.setTiempoFin(actual.getTiempoInicio() + 1.2);
             }
-            for (NodePosition vecino : obtenerNodosVecinos(actual, bloqueos, anio, mes, gridGraph, objetivo, pedido)) {
+            for (NodoMapa vecino : obtenerNodosVecinos(actual, bloqueos, anio, mes, gridGraph, objetivo, pedido)) {
 
                 if (nodosVisitados.contains(vecino)) {
                     continue; // Nodo ya visitado o bloqueado
@@ -75,8 +74,8 @@ public class Astar {
                     double heuristica = calcularHeuristica(vecino, objetivo);
                     double costoTotal = nuevoCosto + heuristica;
                     vecino.setCostoTotal(costoTotal);
-                    vecino.setAntecesor(actual);
-                    vecino.setStartTime(actual.getArriveTime());
+                    vecino.setNodoPrevio(actual);
+                    vecino.setTiempoInicio(actual.getTiempoFin());
                     colaPrioridad.add(vecino);
                 }
             }
@@ -86,39 +85,39 @@ public class Astar {
         return;
     }
 
-    private void reconstruirCamino(NodePosition objetivo, Camion vehiculo, Pedido pedido, int anio,
+    private void reconstruirCamino(NodoMapa objetivo, Camion vehiculo, Pedido pedido, int anio,
                                    int mes, int tipoSimulacion) {
-        List<NodePosition> camino = new ArrayList<>();
-        NodePosition actual = objetivo;
+        List<NodoMapa> camino = new ArrayList<>();
+        NodoMapa actual = objetivo;
 
         while (actual != null) {
             camino.add(actual);
-            actual = actual.getAntecesor();
+            actual = actual.getNodoPrevio();
         }
 
         Collections.reverse(camino);
         int i = 0;
-        for (NodePosition caminoVehiculo : camino) {
+        for (NodoMapa caminoVehiculo : camino) {
 
             if (pedido != null) {
                 if (pedido.getPosX() == caminoVehiculo.getX() && pedido.getPosY() == caminoVehiculo.getY()) {
                     vehiculo.asignarPedido(pedido);
-                    NodePosition ruta = new NodePosition(caminoVehiculo.getId(), caminoVehiculo.getX(),
+                    NodoMapa ruta = new NodoMapa(caminoVehiculo.getId(), caminoVehiculo.getX(),
                             caminoVehiculo.getY(),
-                            caminoVehiculo.isDepot());
+                            caminoVehiculo.isEsAlmacen());
                     if (i == 0) {
-                        ruta.setStartTime(caminoVehiculo.getStartTime());
-                        ruta.setArriveTime(caminoVehiculo.getStartTime());
+                        ruta.setTiempoInicio(caminoVehiculo.getTiempoInicio());
+                        ruta.setTiempoFin(caminoVehiculo.getTiempoInicio());
                     } else {
-                        ruta.setStartTime(caminoVehiculo.getStartTime());
+                        ruta.setTiempoInicio(caminoVehiculo.getTiempoInicio());
                         if(tipoSimulacion == 1){
-                            ruta.setArriveTime(caminoVehiculo.getStartTime() + 1);
+                            ruta.setTiempoFin(caminoVehiculo.getTiempoInicio() + 1);
                         }else{
-                            ruta.setArriveTime(caminoVehiculo.getStartTime() + 1.2);
+                            ruta.setTiempoFin(caminoVehiculo.getTiempoInicio() + 1.2);
                         }
                     }
-                    ruta.setPedidoRuta(pedido);
-                    ruta.setPedido(true);
+                    ruta.setPedido(pedido);
+                    ruta.setEsPedido(true);
                     ruta.setAnio(anio);
                     ruta.setMes(mes);
                     vehiculo.asignarPosicion(ruta);
@@ -127,10 +126,10 @@ public class Astar {
             }
             caminoVehiculo.setAnio(anio);
             caminoVehiculo.setMes(mes);
-            NodePosition ruta = new NodePosition(caminoVehiculo.getId(), caminoVehiculo.getX(), caminoVehiculo.getY(),
-                    caminoVehiculo.isDepot());
-            ruta.setArriveTime(caminoVehiculo.getArriveTime());
-            ruta.setStartTime(caminoVehiculo.getStartTime());
+            NodoMapa ruta = new NodoMapa(caminoVehiculo.getId(), caminoVehiculo.getX(), caminoVehiculo.getY(),
+                    caminoVehiculo.isEsAlmacen());
+            ruta.setTiempoFin(caminoVehiculo.getTiempoFin());
+            ruta.setTiempoInicio(caminoVehiculo.getTiempoInicio());
             ruta.setAnio(anio);
             ruta.setMes(mes);
             vehiculo.asignarPosicion(ruta);
@@ -138,18 +137,18 @@ public class Astar {
         }
     }
 
-    private double calcularHeuristica(NodePosition desde, NodePosition hasta) {
+    private double calcularHeuristica(NodoMapa desde, NodoMapa hasta) {
         // Puedes usar la distancia euclidiana u otras heurísticas según tu problema
         return Math.sqrt(Math.pow(hasta.getX() - desde.getX(), 2) + Math.pow(hasta.getY() - desde.getY(), 2));
     }
 
-    public List<NodePosition> obtenerNodosVecinos(NodePosition posicionActual, List<Bloqueo> bloqueos, int anio,
-                                                  int mes, Mapa gridGraph, NodePosition objetivo, Pedido pedido) {
-        List<NodePosition> vecinos = new ArrayList<>();
+    public List<NodoMapa> obtenerNodosVecinos(NodoMapa posicionActual, List<Bloqueo> bloqueos, int anio,
+                                              int mes, Mapa gridGraph, NodoMapa objetivo, Pedido pedido) {
+        List<NodoMapa> vecinos = new ArrayList<>();
         int x = posicionActual.getX();
         int y = posicionActual.getY();
         // 1440 + 1 -> 1441(proximo nodo)
-        double arriveTime = posicionActual.getStartTime() + 2.4;
+        double arriveTime = posicionActual.getTiempoInicio() + 2.4;
 
         Calendar calendar = Calendar.getInstance();
         calendar.set(Calendar.YEAR, anio);
@@ -171,24 +170,24 @@ public class Astar {
         // Asegúrate de verificar los límites de la cuadrícula para evitar
         // desbordamientos
         if (x > 0 && x <= 70) {
-            vecinos.add(gridGraph.getGrid()[x - 1][y]); // Nodo izquierda
+            vecinos.add(gridGraph.getMapa()[x - 1][y]); // Nodo izquierda
         }
         if (x >= 0 && x < 70) {
-            vecinos.add(gridGraph.getGrid()[x + 1][y]); // Nodo derecha
+            vecinos.add(gridGraph.getMapa()[x + 1][y]); // Nodo derecha
         }
         if (y > 0 && y <= 50) {
-            vecinos.add(gridGraph.getGrid()[x][y - 1]); // Nodo abajo
+            vecinos.add(gridGraph.getMapa()[x][y - 1]); // Nodo abajo
         }
         if (y >= 0 && y < 50) {
-            vecinos.add(gridGraph.getGrid()[x][y + 1]); // Nodo arriba
+            vecinos.add(gridGraph.getMapa()[x][y + 1]); // Nodo arriba
         }
 
-        // List<NodePosition> vecinosBloqueos = Bloqueo.NodosBloqueados(bloqueoFuturo);
+        // List<NodoMapa> vecinosBloqueos = Bloqueo.NodosBloqueados(bloqueoFuturo);
         // vecinos.add(posicionActual); // Agregar el nodo actual a la lista de vecinos
 
-        List<NodePosition> vecinosItera = new ArrayList<>(vecinos);
+        List<NodoMapa> vecinosItera = new ArrayList<>(vecinos);
         for (Nodo nodo : nodosBloqueados) {
-            for (NodePosition vecino : vecinosItera) {
+            for (NodoMapa vecino : vecinosItera) {
                 if (nodo.getX() == objetivo.getX() && nodo.getY() == objetivo.getY()) {
                     // Si el objetivo esta en el bloqueo, no se quita
                     pedido.setIsbloqueo(true);
@@ -197,8 +196,8 @@ public class Astar {
                     if (vecino.getX() == nodo.getX() && vecino.getY() == nodo.getY()) {
                         vecinos.remove(vecino);
                     } else {
-                        if (vecino.getX() == posicionActual.getNodoAnteriorX()
-                                && vecino.getY() == posicionActual.getNodoAnteriorY()) {
+                        if (vecino.getX() == posicionActual.getXPrevio()
+                                && vecino.getY() == posicionActual.getYPrevio()) {
                             vecinos.remove(vecino);
                         }
                     }

@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import org.springframework.http.HttpStatus;
 import pucp.edu.pe.glp_final.algorithm.Genetico;
-import pucp.edu.pe.glp_final.algorithm.NodePosition;
+import pucp.edu.pe.glp_final.algorithm.NodoMapa;
 import pucp.edu.pe.glp_final.models.Averia;
 import pucp.edu.pe.glp_final.models.Bloqueo;
 import pucp.edu.pe.glp_final.models.Camion;
@@ -27,16 +27,15 @@ import pucp.edu.pe.glp_final.models.Pedido;
 import pucp.edu.pe.glp_final.models.enums.TipoIncidente;
 import pucp.edu.pe.glp_final.service.CamionService;
 import pucp.edu.pe.glp_final.service.PedidoService;
-import pucp.edu.pe.glp_final.algorithm.NodePosition;
 
-@RequestMapping("/api")
+@RequestMapping("/api/aco")
 @RestController
 public class GeneticoController {
 
-    private List<Camion> camiones;
-    private List<Pedido> pedidos = new ArrayList<>();;
-    private List<Pedido> pedidosSimulacion = new ArrayList<>();
     private Genetico aco;
+    private List<Camion> camiones;
+    private List<Pedido> pedidos = new ArrayList<>();
+    private List<Pedido> pedidosSimulacion = new ArrayList<>();
     private int primeraVezDiaria = 0;
     private int primeraVezSemanal = 0;
 
@@ -49,27 +48,27 @@ public class GeneticoController {
     @Autowired
     private SimulacionBloqueoController simulacionController;
 
-    @PostMapping("/aco/inicializar")
+    @PostMapping("/inicializar")
     @ResponseBody
-    public ResponseEntity<Object> inicializar(@RequestParam(required = false) int tipoSimulacion) {
-        camiones = new ArrayList<>();
-        camiones = camionService.findAll(); // Se obtienen los camiones de la base de datos
-        System.out.println(tipoSimulacion);
+    public ResponseEntity<Object> inicializar(
+            @RequestParam(required = false) int tipoSimulacion
+    ) {
+        camiones = camionService.findAll();
         aco = new Genetico(camiones, tipoSimulacion);
-        Map<String, String> okMap = new HashMap<>();
-        okMap.put("mensaje", "Aco Inicializado");
-        return ResponseEntity.ok(okMap);
+
+        Map<String, String> response = new HashMap<>();
+        response.put("mensaje", "Algoritmo de planificación inicializado");
+        return ResponseEntity.ok(response);
     }
 
-    // En construcción!!
-    @PostMapping("/aco/simulacionRuta/dia-dia")
+    @PostMapping("/simulacionRuta/dia-dia")
     @ResponseBody
-    public ResponseEntity<List<Camion>> simulacionRutaDiaria(@RequestParam(required = false) int anio,
-                                                             @RequestParam(required = false) int mes, @RequestParam(required = false) double timer,
-                                                             @RequestParam(required = false) int minutosPorIteracion,
-                                                             @RequestBody(required = false) List<Averia> averias,
-                                                             @RequestParam(required = false) LocalDateTime fechaFin) {
-
+    public ResponseEntity<List<Camion>> simulacionRutaDiaria(
+            @RequestParam(required = false) int anio,
+            @RequestParam(required = false) int mes, @RequestParam(required = false) double timer,
+            @RequestParam(required = false) int minutosPorIteracion,
+            @RequestBody(required = false) List<Averia> averias
+    ) {
         if (averias == null) {
             averias = new ArrayList<>();
         }
@@ -82,7 +81,7 @@ public class GeneticoController {
         if (primeraVezDiaria == 0) {
             List<Integer> dias = new ArrayList<>();
             dias.add(dia);
-            pedidos = pedidoService.findByDiaInAndAnioMes(dias, anio, mes);
+            pedidos = pedidoService.obtenerPedidosPorFecha(dias, anio, mes);
             pedidosSimulacion = pedidoService.dividirPedidos(pedidos, 1);
             aco.simulacionRuteo(anio, mes, dia, hora, minuto, minutosPorIteracion, pedidosSimulacion,
                     new ArrayList<>(), pedidos,
@@ -91,14 +90,14 @@ public class GeneticoController {
                 if (vehiculo.getRoute().isEmpty()) {
                     continue;
                 } else {
-                    for (NodePosition ubicacion : vehiculo.getRoute()) {
-                        if (ubicacion.isPedido()) {
-                            if (ubicacion.getPedidoRuta().isEntregado()) {
+                    for (NodoMapa ubicacion : vehiculo.getRoute()) {
+                        if (ubicacion.isEsPedido()) {
+                            if (ubicacion.getPedido().isEntregado()) {
                                 for (Pedido pedido : pedidos) {
-                                    if (pedido.getId() == ubicacion.getPedidoRuta().getId()) {
+                                    if (pedido.getId() == ubicacion.getPedido().getId()) {
                                         pedido.setEntregado(true);
                                         pedido.setEntregadoCompleto(true);
-                                        pedidoService.save(pedido);
+                                        pedidoService.guardar(pedido);
                                     }
                                 }
                             }
@@ -109,8 +108,8 @@ public class GeneticoController {
         } else {
             List<Integer> dias = new ArrayList<>();
             dias.add(dia);
-            pedidos = pedidoService.findByDiaInAndAnioMes(dias, anio, mes);
-            pedidosSimulacion = pedidoService.dividirPedidos(pedidos,1);
+            pedidos = pedidoService.obtenerPedidosPorFecha(dias, anio, mes);
+            pedidosSimulacion = pedidoService.dividirPedidos(pedidos, 1);
             aco.simulacionRuteo(anio, mes, dia, hora, minuto, minutosPorIteracion, pedidosSimulacion,
                     new ArrayList<>(), pedidos,
                     primeraVezDiaria, timer, 1);
@@ -118,14 +117,14 @@ public class GeneticoController {
                 if (vehiculo.getRoute().isEmpty()) {
                     continue;
                 } else {
-                    for (NodePosition ubicacion : vehiculo.getRoute()) {
-                        if (ubicacion.isPedido()) {
-                            if (ubicacion.getPedidoRuta().isEntregado()) {
+                    for (NodoMapa ubicacion : vehiculo.getRoute()) {
+                        if (ubicacion.isEsPedido()) {
+                            if (ubicacion.getPedido().isEntregado()) {
                                 for (Pedido pedido : pedidos) {
-                                    if (pedido.getId() == ubicacion.getPedidoRuta().getId()) {
+                                    if (pedido.getId() == ubicacion.getPedido().getId()) {
                                         pedido.setEntregado(true);
                                         pedido.setEntregadoCompleto(true);
-                                        pedidoService.save(pedido);
+                                        pedidoService.guardar(pedido);
                                     }
                                 }
                             }
@@ -140,18 +139,16 @@ public class GeneticoController {
 
     }
 
-    // Simulacion semanal del algoritmo con manejo de bloqueos
-    @PostMapping("aco/simulacionRuta/semanal")
+    @PostMapping("/simulacionRuta/semanal")
     @ResponseBody
-    public ResponseEntity<List<Camion>> simulacionRutaSemanal(@RequestParam(required = false) int anio,
-                                                              @RequestParam(required = false) int mes,
-                                                              @RequestParam(required = false) double timer,
-                                                              @RequestParam(required = false) int minutosPorIteracion,
-                                                              @RequestBody(required = false) List<Averia> averias) {
-
-        if (averias == null) {
-            averias = new ArrayList<>();
-        }
+    public ResponseEntity<List<Camion>> simulacionRutaSemanal(
+            @RequestParam(required = false) int anio,
+            @RequestParam(required = false) int mes,
+            @RequestParam(required = false) double timer,
+            @RequestParam(required = false) int minutosPorIteracion,
+            @RequestBody(required = false) List<Averia> averias
+    ) {
+        if (averias == null) averias = new ArrayList<>();
         int dia = ((int) timer / 1440);
         int hora = (((int) timer % 1440) / 60);
         int minuto = ((int) timer % 60);
@@ -160,7 +157,7 @@ public class GeneticoController {
 
         if (primeraVezSemanal == 0) {
             pedidos = simulacionController.getPedidos();
-            pedidosSimulacion = pedidoService.dividirPedidos(pedidos,2);
+            pedidosSimulacion = pedidoService.dividirPedidos(pedidos, 2);
             List<Bloqueo> bloqueos = simulacionController.getBloqueos();
             aco.simulacionRuteo(anio, mes, dia, hora, minuto, minutosPorIteracion, pedidosSimulacion, bloqueos,
                     pedidos, primeraVezSemanal, timer, 2);
@@ -175,13 +172,13 @@ public class GeneticoController {
 
     }
 
-    @GetMapping("aco/simulacionRuta/bloqueo")
+    @GetMapping("/simulacionRuta/bloqueo")
     @ResponseBody
     public ResponseEntity<List<Bloqueo>> obtenerBloqeos() {
         return ResponseEntity.ok(aco.getBloqueosActivos());
     }
 
-    @GetMapping("aco/simulacionRuta/pedido")
+    @GetMapping("/simulacionRuta/pedido")
     @ResponseBody
     public ResponseEntity<List<Pedido>> obtenerPedidosOriginales() {
         int i = 0;
@@ -194,24 +191,24 @@ public class GeneticoController {
         return ResponseEntity.ok(aco.getOriginalPedidos());
     }
 
-    @GetMapping("aco/simulacionRuta/pedidoDividido")
+    @GetMapping("/simulacionRuta/pedidoDividido")
     @ResponseBody
     public ResponseEntity<List<Pedido>> obtenerPedidosDivididos() {
 
         return ResponseEntity.ok(aco.getPedidos());
     }
 
-    @GetMapping("aco/simulacionRuta/almacen")
+    @GetMapping("/simulacionRuta/almacen")
     @ResponseBody
     public ResponseEntity<Object> obtenerAlmacenes() {
         if (this.aco == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("El algoritmo ACO no ha sido inicializado. Llama primero a /api/aco/inicializar.");
         }
-        return ResponseEntity.ok(aco.getGridGraph().getAlmacenes());
+        return ResponseEntity.ok(aco.getMapa().getAlmacenes());
     }
 
-    @PostMapping("aco/simulacionRuta/reset")
+    @PostMapping("/simulacionRuta/reset")
     @ResponseBody
     public ResponseEntity<Object> reset() {
         Map<String, Object> response = new HashMap<>();
@@ -260,6 +257,7 @@ public class GeneticoController {
 
     /**
      * Resetea completamente todos los camiones a su estado inicial
+     *
      * @return número de camiones reseteados
      */
     private int resetearCamionesCompleto() {
@@ -301,6 +299,7 @@ public class GeneticoController {
 
     /**
      * Resetea el estado de todos los pedidos en memoria y base de datos
+     *
      * @return número de pedidos actualizados
      */
     private int resetearPedidos() {
@@ -309,7 +308,7 @@ public class GeneticoController {
             for (Pedido pedido : pedidos) {
                 pedido.setEntregado(false);
                 pedido.setEntregadoCompleto(false);
-                pedidoService.save(pedido); // Persistir en BD
+                pedidoService.guardar(pedido); // Persistir en BD
                 contador++;
             }
         }
@@ -388,14 +387,14 @@ public class GeneticoController {
         }
     }
 
-    @GetMapping("/aco/camiones")
+    @GetMapping("/camiones")
     @ResponseBody
     public ResponseEntity<List<Camion>> getcamiones() {
         return ResponseEntity.ok(camiones);
     }
 
     // ENDPOINTS DE LOS REPORTES
-    @GetMapping("aco/reportes/eficiencia-camiones")
+    @GetMapping("/reportes/eficiencia-camiones")
     @ResponseBody
     public ResponseEntity<Object> reporteEficienciaCamiones() {
         if (this.aco == null) {
@@ -431,7 +430,7 @@ public class GeneticoController {
         return ResponseEntity.ok(reporte);
     }
 
-    @GetMapping("aco/reportes/cumplimiento-entregas")
+    @GetMapping("/reportes/cumplimiento-entregas")
     @ResponseBody
     public ResponseEntity<Object> reporteCumplimientoEntregas() {
         if (this.aco == null || pedidos == null) {
@@ -467,7 +466,7 @@ public class GeneticoController {
         return ResponseEntity.ok(reporte);
     }
 
-    @GetMapping("aco/reportes/utilizacion-flota")
+    @GetMapping("/reportes/utilizacion-flota")
     @ResponseBody
     public ResponseEntity<Object> reporteUtilizacionFlota() {
         if (this.aco == null) {
@@ -513,7 +512,7 @@ public class GeneticoController {
         return ResponseEntity.ok(reporte);
     }
 
-    @GetMapping("aco/reportes/incidentes")
+    @GetMapping("/reportes/incidentes")
     @ResponseBody
     public ResponseEntity<Object> reporteIncidentes() {
         if (this.aco == null) {
@@ -570,7 +569,7 @@ public class GeneticoController {
         return ResponseEntity.ok(reporte);
     }
 
-    @GetMapping("aco/reportes/dashboard")
+    @GetMapping("/reportes/dashboard")
     @ResponseBody
     public ResponseEntity<Object> reporteDashboard() {
         if (this.aco == null) {
@@ -629,7 +628,7 @@ public class GeneticoController {
     // Métodos auxiliares para los reportes
     private int contarPedidosEnRuta(Camion camion) {
         if (camion.getRoute() == null) return 0;
-        return (int) camion.getRoute().stream().filter(node -> node.isPedido()).count();
+        return (int) camion.getRoute().stream().filter(node -> node.isEsPedido()).count();
     }
 
     private double calcularConsumoCombustible(Camion camion) {

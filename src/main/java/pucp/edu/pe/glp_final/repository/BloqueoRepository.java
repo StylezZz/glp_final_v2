@@ -11,4 +11,6 @@ import pucp.edu.pe.glp_final.models.Bloqueo;
 public interface BloqueoRepository extends JpaRepository<Bloqueo, Integer> {
     @Query("SELECT DISTINCT CONCAT(b.anio, '', LPAD(CAST(b.mes AS string), 2, '0'), '.bloqueos.txt') FROM Bloqueo b")
     List<String> findDistintosArchivosNames();
+
+    List<Bloqueo> findByAnioAndMes(int anio, int mes);
 }

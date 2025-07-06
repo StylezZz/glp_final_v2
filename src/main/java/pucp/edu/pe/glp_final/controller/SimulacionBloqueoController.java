@@ -1,7 +1,5 @@
 package pucp.edu.pe.glp_final.controller;
 
-import java.io.IOException;
-import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -19,20 +17,21 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 
-import lombok.Getter;
-import lombok.Setter;
+import pucp.edu.pe.glp_final.service.SimulacionBloqueoService;
+import pucp.edu.pe.glp_final.service.FileStorageService;
+import pucp.edu.pe.glp_final.service.BloqueoService;
+import pucp.edu.pe.glp_final.service.PedidoService;
 import pucp.edu.pe.glp_final.models.Bloqueo;
 import pucp.edu.pe.glp_final.models.Pedido;
-import pucp.edu.pe.glp_final.service.BloqueoService;
-import pucp.edu.pe.glp_final.service.FileStorageService;
-import pucp.edu.pe.glp_final.service.PedidoService;
-import pucp.edu.pe.glp_final.service.SimulacionBloqueoService;
+import lombok.Getter;
+import lombok.Setter;
 
-@RestController
-@RequestMapping("/api")
 @Getter
 @Setter
+@RestController
+@RequestMapping("/api/simulacion")
 public class SimulacionBloqueoController {
+
     private List<Bloqueo> bloqueos;
     private List<Pedido> pedidos;
 
@@ -48,66 +47,53 @@ public class SimulacionBloqueoController {
     @Autowired
     private BloqueoService bloqueoService;
 
-    @GetMapping("/simulacion/detener")
+    @GetMapping("/detener")
     public ResponseEntity<Object> detenerSimulacion() {
-        simulacionService.detenerSimulacion();
-        Map<String, String> okMap = new HashMap<>();
-        okMap.put("mensaje", "Simulacion de Bloqueos Detenida");
-        return ResponseEntity.ok(okMap);
+        simulacionService.parar();
+        Map<String, String> response = new HashMap<>();
+        response.put("mensaje", "La simulación ha sido detenida");
+        return ResponseEntity.ok(response);
     }
 
-    // Endpoint para obtener los bloqueos activos en la simulación en el instante de tiempo actual.
-    @GetMapping("/simulacion/bloqueosActivos")
-    public ResponseEntity<List<Bloqueo>> obtenerBloqueosActivos() {
-        List<Bloqueo> bloqueosActivos = simulacionService.obtenerBloqueosActivos();
-        return ResponseEntity.ok(bloqueosActivos);
-    }
-
-    // Aca se carga los bloqueos
-    @PostMapping("/simulacion/inicializar-simulacion")
+    @PostMapping("/inicializar-simulacion")
     public ResponseEntity<Object> iniciarSimulacion(
-            @RequestParam("horaInicial") int horaInicial,
-            @RequestParam("minutoInicial") int minutoInicial,
             @RequestParam("anio") int anio,
             @RequestParam("mes") int mes,
             @RequestParam("dia") int dia,
+            @RequestParam("horaInicial") int horaInicial,
+            @RequestParam("minutoInicial") int minutoInicial,
             @RequestParam("minutosPorIteracion") int minutosPorIteracion,
-            @RequestParam("timerSimulacion") int timerSimulacion) throws IOException {
-
-        List<Bloqueo> bloqueos = new ArrayList<>();
-        Bloqueo prueba = new Bloqueo();
-        List<String> nombresArchivos = prueba.obtenerNombresDeArchivosDeBloqueos();
-
-        // Solo leemos el primer archivo si existe alguno
-        if (!nombresArchivos.isEmpty()) {
-            String primerArchivo = nombresArchivos.get(0);
-            System.out.println("Leyendo solo el primer archivo de bloqueos: " + primerArchivo);
-            bloqueos = prueba.leerArchivoBloqueo(primerArchivo);
-        } else {
-            System.out.println("No se encontraron archivos de bloqueos");
-        }
-
-        simulacionService.iniciarSimulacion(bloqueos, horaInicial, minutoInicial, anio, mes, dia, minutosPorIteracion, timerSimulacion);
-        Map<String, String> okMap = new HashMap<>();
-        okMap.put("mensaje", "Simulacion de Bloqueos Inicializada" + (!nombresArchivos.isEmpty() ? " con archivo: " + nombresArchivos.get(0) : " sin archivos"));
-        return ResponseEntity.ok(okMap);
+            @RequestParam("timerSimulacion") int timerSimulacion
+    ) {
+        simulacionService.empezar(
+                horaInicial,
+                minutoInicial,
+                anio,
+                mes,
+                dia,
+                minutosPorIteracion,
+                timerSimulacion
+        );
+        Map<String, String> response = new HashMap<>();
+        response.put("mensaje", "La simulación ha empezado");
+        return ResponseEntity.ok(response);
     }
 
-    // Endpoint para establecer la velocidad de la simulación
-    @PostMapping("/simulacion/establecervelocidad")
-    public ResponseEntity<String> establecerVelocidad(@RequestParam int minutosPorIteracion) {
-        simulacionService.establecerVelocidad(minutosPorIteracion);
+    @PostMapping("/establecervelocidad")
+    public ResponseEntity<String> establecerVelocidad(
+            @RequestParam int minutosPorIteracion
+    ) {
+        simulacionService.configurarVelocidad(minutosPorIteracion);
         return ResponseEntity.ok("Velocidad establecida a " + minutosPorIteracion + " minutos por iteración.");
     }
 
-    // Endpoint para obtener la velocidad de la simulación
-    @GetMapping("/simulacion/obtenervelocidad")
+    @GetMapping("/obtenervelocidad")
     public ResponseEntity<Integer> obtenerVelocidad() {
         int velocidad = simulacionService.obtenerVelocidad();
         return ResponseEntity.ok(velocidad);
     }
 
-    @GetMapping("/simulacion/tiempo-actual")
+    @GetMapping("/tiempo-actual")
     public ResponseEntity<Map<String, Object>> obtenerTiempoActual() {
         if (simulacionService == null || simulacionService.getSimulacion() == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
@@ -124,50 +110,38 @@ public class SimulacionBloqueoController {
         return ResponseEntity.ok(tiempoActual);
     }
 
-    @GetMapping("/simulacion/pedidos/semanal")
+    @GetMapping("/pedidos/semanal")
     @ResponseBody
     public ResponseEntity<List<Pedido>> obtenerPedidosSemanal(
             @RequestParam(required = false) int anio,
             @RequestParam(required = false) int mes,
             @RequestParam(required = false) int dia,
             @RequestParam(required = false) int hora,
-            @RequestParam(required = false) int minuto) {
-
-        // Obtener todos los pedidos de la BD primero
-        List<Pedido> todosLosPedidos = pedidoService.findAll();
-
-        // Usar el método existente para filtrar por semana
-        this.pedidos = pedidoService.getPedidosSemana(todosLosPedidos, dia, mes, anio, hora, minuto);
-
-        // Ordenar por id antes de retornar
+            @RequestParam(required = false) int minuto
+    ) {
+        List<Pedido> pedidosTotales = pedidoService.obtenerTodos();
+        this.pedidos = pedidoService.getPedidosSemana(pedidosTotales, dia, mes, anio, hora, minuto);
         List<Pedido> pedidosOrdenados = this.pedidos.stream()
                 .sorted((p1, p2) -> Integer.compare(p1.getId(), p2.getId()))
                 .toList();
-
         return ResponseEntity.ok(pedidosOrdenados);
     }
 
-    @GetMapping("/simulacion/bloqueos/semanal")
+    @GetMapping("/bloqueos/semanal")
     @ResponseBody
     public ResponseEntity<List<Bloqueo>> obtenerBloqueosSemanal(
             @RequestParam(required = false) int anio,
             @RequestParam(required = false) int mes,
             @RequestParam(required = false) int dia,
             @RequestParam(required = false) int hora,
-            @RequestParam(required = false) int minuto) {
-
-        Path fileBloqueo = fileStorageService.getFileBloqueo(anio, mes);
-
-        List<Bloqueo> bloqueosArchivo = new ArrayList<>();
-        bloqueos = new ArrayList<>();
-
-        bloqueosArchivo = bloqueoService.leerArchivoBloqueo(fileBloqueo);
-        bloqueos = bloqueoService.getBloqueosSemanal(bloqueosArchivo, dia, mes, anio, hora, minuto);
-
+            @RequestParam(required = false) int minuto
+    ) {
+        List<Bloqueo> bloqueosMes = bloqueoService.obtenerBloqueosPorAnioMes(anio, mes);
+        bloqueos = bloqueoService.getBloqueosSemanal(bloqueosMes, dia, mes, anio, hora, minuto);
         return ResponseEntity.ok(this.bloqueos);
     }
 
-    @GetMapping("/simulacion/pedidos/dia-dia")
+    @GetMapping("/pedidos/dia-dia")
     public ResponseEntity<List<Pedido>> obtenerPedidosDiario(
             @RequestParam(required = false) int anio,
             @RequestParam(required = false) int mes,

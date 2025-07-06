@@ -21,14 +21,14 @@ import pucp.edu.pe.glp_final.service.CamionService;
 
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/camiones")
 public class CamionController {
 
     @Autowired
     private CamionService vehiculoService;
 
     // Camiones cargados desde Base de datos
-    @GetMapping("/camiones")
+    @GetMapping("/")
     @ResponseBody
     public ResponseEntity<Object> getVehiculos() {
         try {
@@ -52,13 +52,13 @@ public class CamionController {
         }
     }
 
-    @PostMapping("/camiones")
+    @PostMapping("/")
     @ResponseBody
     public Camion save(@RequestBody Camion vehiculo) {
         return vehiculoService.save(vehiculo);
     }
 
-    @DeleteMapping("/camiones")
+    @DeleteMapping("/")
     @ResponseBody
     public ResponseEntity<Object> deleteAll() {
         try {
@@ -74,7 +74,7 @@ public class CamionController {
     }
 
     // Cargar camiones hardcodeados y guardar en BD
-    @PostMapping("/camiones/cargar-archivo")
+    @PostMapping("/cargar-archivo")
     @ResponseBody
     public ResponseEntity<Object> cargarCamionesHardcodeados() {
         try {
@@ -117,7 +117,7 @@ public class CamionController {
         }
     }
 
-    @GetMapping("/camiones/{codigo}")
+    @GetMapping("/{codigo}")
     @ResponseBody
     public Camion findByCodigo(@PathVariable String codigo){
         return vehiculoService.findByVehiculo(codigo);

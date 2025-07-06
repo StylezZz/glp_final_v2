@@ -17,7 +17,7 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import pucp.edu.pe.glp_final.algorithm.NodePosition;
+import pucp.edu.pe.glp_final.algorithm.NodoMapa;
 
 @Table(name = "camion")
 @Data
@@ -60,7 +60,7 @@ public class Camion {
     private double velocidad;
 
     @Transient
-    private List<NodePosition> route;
+    private List<NodoMapa> route;
 
     private boolean capacidadCompleta;
 
@@ -69,7 +69,7 @@ public class Camion {
     private double tiempoViaje;
 
     @Transient
-    public NodePosition ubicacionActual; // ubicación actual del vehículo
+    public NodoMapa ubicacionActual; // ubicación actual del vehículo
 
     private Integer tipoAveria; // Tipo Averia 0 -> Ninguna Averia, 1 -> Averia Leve, 2 -> Averia Grave, 3 -> Averia
     // Critica
@@ -131,7 +131,7 @@ public class Camion {
         // la capacidad
     }
 
-    public void asignarPosicion(NodePosition node) {
+    public void asignarPosicion(NodoMapa node) {
         this.ubicacionActual = node;
         route.add(node);
     }
