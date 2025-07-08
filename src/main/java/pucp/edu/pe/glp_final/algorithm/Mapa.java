@@ -1,7 +1,9 @@
 package pucp.edu.pe.glp_final.algorithm;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,12 +22,12 @@ public class Mapa {
     private List<Almacen> almacenes;
 
     public Mapa(int tipoSimulacion) {
-        this.mapa = new NodoMapa[rows + 1][columns + 1];
         this.almacenes = new ArrayList<>();
-        this.columns = 50;
-        this.rows = 70;
-
         cargarAlmacenes(tipoSimulacion);
+
+        this.rows = 70;
+        this.columns = 50;
+        this.mapa = new NodoMapa[rows + 1][columns + 1];
         cargarNodos();
     }
 
@@ -37,23 +39,27 @@ public class Mapa {
     }
 
     public void cargarNodos() {
+        // Ubicaciones de almacenes
+        Map<String, Boolean> ubicacionesAlmacenes = new HashMap<>();
+        for (Almacen almacen : almacenes) {
+            String key = almacen.getUbicacion().getX() + "," + almacen.getUbicacion().getY();
+            ubicacionesAlmacenes.put(key, true);
+        }
+
+        // Nodos del mapa
         int id = 0;
         for (int i = 0; i <= rows; i++) {
             for (int j = 0; j <= columns; j++) {
-                mapa[i][j] = new NodoMapa(id, i, j, false);
-                for (Almacen almacen : almacenes) {
-                    if (almacen.getUbicacion().getX() == i && almacen.getUbicacion().getY() == j) {
-                        mapa[i][j].setEsAlmacen(true);
-                    }
-                }
-                id++;
+                String coordenada = i + "," + j;
+                boolean esAlmacen = ubicacionesAlmacenes.containsKey(coordenada);
+                mapa[i][j] = new NodoMapa(id++, i, j, esAlmacen);
             }
         }
     }
 
     public void removerPedidos() {
-        for (int i = 0; i < mapa.length; i++)
+        for (NodoMapa[] nodoMapas : mapa)
             for (int j = 0; j < mapa[1].length; j++)
-                mapa[i][j].setEsPedido(false);
+                nodoMapas[j].setEsPedido(false);
     }
 }
