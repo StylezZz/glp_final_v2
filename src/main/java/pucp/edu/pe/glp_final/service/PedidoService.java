@@ -81,9 +81,9 @@ public class PedidoService {
                     cliente = new Cliente();
                     cliente.setId(pedido.getIdCliente());
                     cliente.setNombre("Cliente " + pedido.getIdCliente());
-                    cliente.setCorreo("clienteNuevo" + pedido.getIdCliente() + "@glpsoftware.com");
-                    cliente.setTelefono(9999999);
-                    cliente.setTipo(TipoCliente.CONDOMINIOS); // podría añadir un tipo Nuevo
+                    cliente.setCorreo("cliente" + pedido.getIdCliente() + "@glplogistics.com.pe");
+                    cliente.setTelefono(987654321);
+                    cliente.setTipo(TipoCliente.CONDOMINIOS);
                     clientRepository.save(cliente);
                 } else cliente = clienteOptional.get();
 

@@ -17,7 +17,7 @@ public class SimulacionBloqueoService {
             int mes,
             int dia,
             int minutosPorIteracion,
-            int timer
+            int momento
     ) {
         simulacion = new SimulacionBloqueo(
                 horaInicial,
@@ -26,7 +26,7 @@ public class SimulacionBloqueoService {
                 mes,
                 dia,
                 minutosPorIteracion,
-                timer
+                momento
         );
         simulacion.empezar();
     }

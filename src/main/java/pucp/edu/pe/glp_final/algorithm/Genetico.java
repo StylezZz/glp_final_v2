@@ -52,7 +52,7 @@ public class Genetico {
             List<Bloqueo> bloqueos,
             List<Pedido> pedidoOriginal,
             int primeraVez,
-            double timer,
+            double momento,
             int tipoSimulacion
     ) {
         getPedidosDia(anio, mes, dia, hora, minuto, pedidosDia, minutosPorIteracion, pedidoOriginal, tipoSimulacion);
@@ -64,7 +64,7 @@ public class Genetico {
         calendar.set(Calendar.MINUTE, minuto);
 
         bloqueosActivos = Bloqueo.bloqueosActivos(bloqueos, calendar);
-        ejecutar(anio, mes, dia, hora, minuto, bloqueos, primeraVez, timer, tipoSimulacion);
+        ejecutar(anio, mes, dia, hora, minuto, bloqueos, primeraVez, momento, tipoSimulacion);
         validarTiempoRuta(anio, mes, dia, hora, minuto, minutosPorIteracion, tipoSimulacion);
 
         return camiones;

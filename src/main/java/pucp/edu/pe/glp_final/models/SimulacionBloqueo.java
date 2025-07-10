@@ -1,6 +1,5 @@
 package pucp.edu.pe.glp_final.models;
 
-import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -11,7 +10,7 @@ import lombok.Setter;
 @Setter
 @Getter
 public class SimulacionBloqueo {
-    private Timer timer;                        // Timer para la simulacion
+    private Timer momento;
     private int minutosPorIteracion;
     private int horaActual;
     private int minutoActual;
@@ -28,7 +27,7 @@ public class SimulacionBloqueo {
             int mes,
             int dia,
             int minutosPorIteracion,
-            int timer
+            int momento
     ) {
         this.anioActual = anio;
         this.mesActual = mes;
@@ -36,7 +35,7 @@ public class SimulacionBloqueo {
         this.horaActual = horaInicial;
         this.minutoActual = minutoInicial;
         this.minutosPorIteracion = minutosPorIteracion;
-        this.timerSimulacion = timer;
+        this.timerSimulacion = momento;
     }
 
     public void empezar() {
@@ -50,9 +49,9 @@ public class SimulacionBloqueo {
     }
 
     public void parar() {
-        if (timer != null) {
-            timer.cancel();
-            timer.purge();
+        if (momento != null) {
+            momento.cancel();
+            momento.purge();
         }
     }
 

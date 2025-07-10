@@ -58,7 +58,7 @@ public class Pedido {
     @JoinColumn(name = "cliente_id")
     private Cliente cliente;
 
-    public  void setCantidadGLPAsignada(int cantidadGLPAsignada) {
+    public void setCantidadGLPAsignada(int cantidadGLPAsignada) {
         this.cantidadGLPAsignada += cantidadGLPAsignada;
     }
 
@@ -84,7 +84,6 @@ public class Pedido {
         this.isbloqueo = false;
         this.fecDia = LocalDateTime.now();
     }
-
 
     public static Pedido leerRegistro(String registro,int anio,int mes, int id){
 
@@ -124,16 +123,11 @@ public class Pedido {
         //no solo está le número sino también m3
         String[] cantidad = ubicacion[3].split("m3");
         pedido.setCantidadGLP(Integer.parseInt(cantidad[0]));
-
         pedido.setHorasLimite(Integer.parseInt(ubicacion[4].replaceAll("[^0-9]", "")));
-
         pedido.setEntregado(false);
-
         pedido.setAsignado(false);
-
         pedido.setHoraDeInicio(pedido.getHora()*60 + pedido.getMinuto() + pedido.getDia() * 1440);
         pedido.setTiempoLlegada(pedido.getHoraDeInicio() + pedido.getHorasLimite()*60);
-
 
         LocalDateTime fechaDeRegistro = LocalDateTime.of(anio,mes,pedido.getDia(),pedido.getHora(),pedido.getMinuto());
         LocalDateTime fechaEntrega = fechaDeRegistro.plusHours(pedido.getHorasLimite());
@@ -144,16 +138,5 @@ public class Pedido {
         pedido.setTiempoRegistroStr(partes[0]);
 
         return pedido;
-    }
-
-    public double getHoraInicio() {
-        return horaDeInicio;
-    }
-
-    public String getTiempoRegistroStr() {
-        return tiempoRegistroStr;
-    }
-    public void setTiempoRegistroStr(String tiempoRegistroStr) {
-        this.tiempoRegistroStr = tiempoRegistroStr;
     }
 }
