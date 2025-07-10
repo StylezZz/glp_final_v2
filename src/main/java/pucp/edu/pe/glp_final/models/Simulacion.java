@@ -1,5 +1,6 @@
 package pucp.edu.pe.glp_final.models;
 
+import java.time.LocalDateTime;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -9,7 +10,7 @@ import lombok.Setter;
 
 @Setter
 @Getter
-public class SimulacionBloqueo {
+public class Simulacion {
     private Timer momento;
     private int minutosPorIteracion;
     private int horaActual;
@@ -18,9 +19,8 @@ public class SimulacionBloqueo {
     private int anioActual;
     private int mesActual;
     private int timerSimulacion;
-    private MetricasSimulacion metricas = new MetricasSimulacion();
 
-    public SimulacionBloqueo(
+    public Simulacion(
             int horaInicial,
             int minutoInicial,
             int anio,
@@ -43,9 +43,9 @@ public class SimulacionBloqueo {
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                avanzarTiempo(minutosPorIteracion); // Avanza el tiempo en 1 minuto
+                progresarMomento(minutosPorIteracion);
             }
-        }, 0, timerSimulacion); //Inicia la tarea inmediatamente y repítela cada segundo (1000 ms).
+        }, 0, timerSimulacion);
     }
 
     public void parar() {
@@ -55,6 +55,7 @@ public class SimulacionBloqueo {
         }
     }
 
+    /*
     // Función para obtener el número de días en un mes para el avance de tiempo
     private int obtenerDiasEnMes(int anio, int mes) {
         if (mes == 2) {
@@ -70,10 +71,21 @@ public class SimulacionBloqueo {
             return 31; // Meses con 31 días.
         }
     }
+    */
 
-    // Avanza el tiempo simulado (puedes ajustar la velocidad de la simulación
-    // aquí).
-    private void avanzarTiempo(int minutos) {
+    private void progresarMomento(int minutos) {
+        LocalDateTime tiempo = LocalDateTime.of(anioActual, mesActual, diaActual, horaActual, minutoActual);
+        tiempo = tiempo.plusMinutes(minutos);
+
+        this.anioActual = tiempo.getYear();
+        this.mesActual = tiempo.getMonthValue();
+        this.diaActual = tiempo.getDayOfMonth();
+        this.horaActual = tiempo.getHour();
+        this.minutoActual = tiempo.getMinute();
+    }
+
+    /*
+    private void progresarMomento(int minutos) {
         minutoActual += minutos;
 
         // Verifica si es necesario ajustar la hora si los minutos superan 59.
@@ -101,4 +113,5 @@ public class SimulacionBloqueo {
             mesActual = 1;
         }
     }
+    */
 }

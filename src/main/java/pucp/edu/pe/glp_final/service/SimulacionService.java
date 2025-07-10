@@ -1,14 +1,14 @@
 package pucp.edu.pe.glp_final.service;
 
-import pucp.edu.pe.glp_final.models.SimulacionBloqueo;
+import pucp.edu.pe.glp_final.models.Simulacion;
 import org.springframework.stereotype.Service;
 import lombok.Getter;
 
 @Getter
 @Service
-public class SimulacionBloqueoService {
+public class SimulacionService {
 
-    private SimulacionBloqueo simulacion;
+    private Simulacion simulacion;
 
     public void empezar(
             int horaInicial,
@@ -19,7 +19,7 @@ public class SimulacionBloqueoService {
             int minutosPorIteracion,
             int momento
     ) {
-        simulacion = new SimulacionBloqueo(
+        simulacion = new Simulacion(
                 horaInicial,
                 minutoInicial,
                 anio,

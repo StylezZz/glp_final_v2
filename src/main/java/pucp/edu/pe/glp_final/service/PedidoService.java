@@ -96,7 +96,6 @@ public class PedidoService {
         return pedidos;
     }
 
-    // Dado una Lista de pedidos devolver los pedidos de una semana dada el dia de inicio
     public List<Pedido> getPedidosSemana(List<Pedido> pedidos, int dia, int mes, int anio, int hora, int minuto) {
         List<Pedido> pedidosSemana = new ArrayList<>();
         LocalDateTime fechaInicio = LocalDateTime.of(anio, mes, dia, hora, minuto);

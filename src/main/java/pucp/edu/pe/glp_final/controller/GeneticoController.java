@@ -211,47 +211,43 @@ public class GeneticoController {
     @PostMapping("/simulacionRuta/reset")
     @ResponseBody
     public ResponseEntity<Object> reset() {
-        Map<String, Object> response = new HashMap<>();
-
         try {
-            // 1. Resetear algoritmo ACO
-            aco = null;
-
-            // 2. Resetear camiones completamente
-            int camionesReseteados = 0;
-            if (camiones != null && !camiones.isEmpty()) {
-                camionesReseteados = resetearCamionesCompleto();
-            }
-
-            // 3. Resetear pedidos en memoria Y en base de datos
+            // Reset de camiones y pedidos
+            int camionesReseteados = resetearCamionesCompleto();
             int pedidosActualizados = resetearPedidos();
-
-            // 4. Limpiar listas en memoria
             limpiarListasMemoria();
 
-            // 5. Resetear variables de control
-            primeraVezDiaria = 0;
-            primeraVezSemanal = 0;
+            // Reset algoritmo y variables de control
+            aco = null;
+            primeraVezDiaria = primeraVezSemanal = 0;
 
-            // 6. Preparar respuesta completa
-            response.put("mensaje", "Reset completo realizado exitosamente");
-            response.put("detalles", Map.of(
-                    "camionesReseteados", camionesReseteados,
-                    "pedidosActualizados", pedidosActualizados,
-                    "listasLimpiadas", "pedidos, pedidosSimulacion",
-                    "variablesControl", "primeraVezDiaria, primeraVezSemanal"
-            ));
-            response.put("timerRecomendado", 1440.0); // Día 2 para evitar bug día 0
-            response.put("tiempoInicial", "Día 2, 00:00:00");
-            response.put("estadoReset", "COMPLETO");
-            response.put("timestamp", LocalDateTime.now());
+            // Construir respuesta simplificada
+            Map<String, Object> response = Map.of(
+                    "mensaje", "Reset completado",
+                    "detalles", Map.of(
+                            "camionesReseteados", camionesReseteados,
+                            "pedidosActualizados", pedidosActualizados,
+                            "listasLimpiadas", "pedidos, pedidosSimulacion",
+                            "variablesControl", "primeraVezDiaria, primeraVezSemanal"
+                    ),
+                    "estadoReset", "COMPLETO",
+                    "timestamp", LocalDateTime.now(),
+                    "tiempoInicial", "Día 2, 00:00:00",
+                    "timerRecomendado", 1440.0, // Día 2 para evitar bug día 0
+                    "resumen", String.format("Reseteados: %d camiones, %d pedidos",
+                            camionesReseteados, pedidosActualizados)
+            );
+
 
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            response.put("error", "Error durante el reset: " + e.getMessage());
-            response.put("estadoReset", "ERROR");
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                            "error", "Error durante el reset: " + e.getMessage(),
+                            "estadoReset", "ERROR",
+                            "timestamp", LocalDateTime.now()
+                    ));
         }
     }
 
@@ -262,6 +258,9 @@ public class GeneticoController {
      */
     private int resetearCamionesCompleto() {
         int contador = 0;
+        if (camiones == null || camiones.isEmpty()) {
+            return contador; // No hay camiones para resetear
+        }
         for (Camion camion : camiones) {
             // Estado operativo - rutas y cargas
             if (camion.getRoute() != null) {

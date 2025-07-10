@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 
-import pucp.edu.pe.glp_final.service.SimulacionBloqueoService;
+import pucp.edu.pe.glp_final.service.SimulacionService;
 import pucp.edu.pe.glp_final.service.FileStorageService;
 import pucp.edu.pe.glp_final.service.BloqueoService;
 import pucp.edu.pe.glp_final.service.PedidoService;
@@ -36,7 +36,7 @@ public class SimulacionBloqueoController {
     private List<Pedido> pedidos;
 
     @Autowired
-    private SimulacionBloqueoService simulacionService;
+    private SimulacionService simulacionService;
 
     @Autowired
     private FileStorageService fileStorageService;
