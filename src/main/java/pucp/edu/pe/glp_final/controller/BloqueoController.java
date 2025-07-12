@@ -40,7 +40,7 @@ public class BloqueoController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping(value = "/leer-bloqueos", consumes = "multipart/form-data")
+    @PostMapping(value = "/cargar-archivo", consumes = "multipart/form-data")
     @ResponseBody
     public ResponseEntity<Object> uploadFile(@RequestParam("file") MultipartFile file) {
         Map<String, Object> response = new HashMap<>();
