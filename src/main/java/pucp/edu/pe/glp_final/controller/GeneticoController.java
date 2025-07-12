@@ -46,7 +46,7 @@ public class GeneticoController {
     private CamionService camionService;
 
     @Autowired
-    private SimulacionBloqueoController simulacionController;
+    private SimulacionController simulacionController;
 
     @PostMapping("/inicializar")
     @ResponseBody
@@ -266,7 +266,7 @@ public class GeneticoController {
             if (camion.getRoute() != null) {
                 camion.getRoute().clear();
             } else {
-                camion.inicializarRuta();
+                camion.crearRuta();
             }
             camion.setCargaAsignada(0);
             camion.setDistanciaRecorrida(0.0);

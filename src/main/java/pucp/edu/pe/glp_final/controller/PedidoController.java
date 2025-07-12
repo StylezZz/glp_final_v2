@@ -23,7 +23,6 @@ import org.springframework.web.multipart.MultipartFile;
 import lombok.Getter;
 import lombok.Setter;
 import pucp.edu.pe.glp_final.models.Pedido;
-import pucp.edu.pe.glp_final.service.FileStorageService;
 import pucp.edu.pe.glp_final.service.PedidoService;
 
 @RestController
@@ -37,8 +36,6 @@ public class PedidoController {
     @Autowired
     private PedidoService pedidoService;
 
-    @Autowired
-    private FileStorageService storageService;
 
     @GetMapping
     @ResponseBody

@@ -42,9 +42,9 @@ public class Bloqueo {
 
     @OneToMany(mappedBy = "bloqueo", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonManagedReference
-    private List<NodoBloqueado> tramo = new ArrayList<>();
+    private List<TramoBloqueado> tramo = new ArrayList<>();
 
-    public void addTramo(NodoBloqueado nodoBloqueo) {
+    public void addTramo(TramoBloqueado nodoBloqueo) {
         tramo.add(nodoBloqueo);
         nodoBloqueo.setBloqueo(this);
     }
@@ -54,7 +54,6 @@ public class Bloqueo {
         bloqueo.anio = anio;
         bloqueo.mes = mes;
 
-        // Parsing del tiempo (mantener la lógica existente)
         String[] partes = registro.split(":");
         if (partes.length != 2) {
             throw new IllegalArgumentException("Formato de entrada incorrecto");
@@ -65,7 +64,6 @@ public class Bloqueo {
             throw new IllegalArgumentException("Formato de inicio/fin incorrecto");
         }
 
-        // Atributos de inicio
         String[] partesInicio = momentoInicioFin[0].split("[dhm]");
         if (partesInicio.length != 3) {
             throw new IllegalArgumentException("Formato de momento incorrecto");
@@ -75,7 +73,6 @@ public class Bloqueo {
         bloqueo.setHoraInicio(Integer.parseInt(partesInicio[1].replace("h", "")));
         bloqueo.setMinutoInicio(Integer.parseInt(partesInicio[2].replace("m", "")));
 
-        // Atributos de fin
         String[] partesFin = momentoInicioFin[1].split("[dhm]");
         if (partesFin.length != 3) {
             throw new IllegalArgumentException("Formato de momento incorrecto");
@@ -85,7 +82,6 @@ public class Bloqueo {
         bloqueo.setHoraFin(Integer.parseInt(partesFin[1].replace("h", "")));
         bloqueo.setMinutoFin(Integer.parseInt(partesFin[2].replace("m", "")));
 
-        // Crear fechas
         LocalDateTime fechaInicio = LocalDateTime.of(anio, mes, bloqueo.getDiaInicio(),
                 bloqueo.getHoraInicio(), bloqueo.getMinutoInicio());
         LocalDateTime fechaFin = LocalDateTime.of(anio, mes, bloqueo.getDiaFin(),
@@ -93,21 +89,19 @@ public class Bloqueo {
         bloqueo.setFechaInicio(fechaInicio);
         bloqueo.setFechaFin(fechaFin);
 
-        // Parsing de coordenadas y creación de tramos
         String[] coordenadas = partes[1].split(",");
         if (coordenadas.length % 2 != 0) {
             throw new IllegalArgumentException("Formato de coordenadas incorrecto");
         }
 
         for (int i = 0; i < coordenadas.length - 2; i += 2) {
-            NodoBloqueado nodo = NodoBloqueado.builder()
+            TramoBloqueado tramo = TramoBloqueado.builder()
                     .x_ini(Integer.parseInt(coordenadas[i]))
                     .y_ini(Integer.parseInt(coordenadas[i + 1]))
                     .x_fin(Integer.parseInt(coordenadas[i + 2]))
                     .y_fin(Integer.parseInt(coordenadas[i + 3]))
                     .build();
-
-            bloqueo.addTramo(nodo);
+            bloqueo.addTramo(tramo);
         }
 
         return bloqueo;
@@ -133,7 +127,6 @@ public class Bloqueo {
             }
             System.out.println("El archivo existe: " + file.getAbsolutePath());
 
-            // Intentar extraer año y mes
             try {
                 int anio = Integer.parseInt(nombreArchivo.substring(0, 4));
                 int mes = Integer.parseInt(nombreArchivo.substring(4, 6));
@@ -145,7 +138,6 @@ public class Bloqueo {
                 return bloqueos;
             }
 
-            // Leer el contenido del archivo
             try (BufferedReader br = new BufferedReader(new FileReader(path))) {
                 String linea;
                 int numeroLinea = 0;
@@ -224,7 +216,7 @@ public class Bloqueo {
         List<Nodo> nodosBloqueados = new ArrayList<>();
 
         for (Bloqueo bloqueo : bloqueos) {
-            for (NodoBloqueado tramoBloqueo : bloqueo.getTramo()) {
+            for (TramoBloqueado tramoBloqueo : bloqueo.getTramo()) {
                 //bloqueo horizontal
                 if (tramoBloqueo.getY_ini() == tramoBloqueo.getY_fin()) {
                     // bloqueo derecho
