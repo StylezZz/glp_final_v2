@@ -1,89 +1,65 @@
 package pucp.edu.pe.glp_final.algorithm;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import pucp.edu.pe.glp_final.models.Almacen;
 import pucp.edu.pe.glp_final.models.Nodo;
 
 @Getter
 @Setter
-// Representación del área geográfica de operación para el sistema de ruteo de vehículos
+@NoArgsConstructor
 public class Mapa {
-    // Matriz que representa la grilla del mapa
-    private NodePosition[][] grid;
-    // Número de filas y columnas del mapa
+
+    private NodoMapa[][] mapa;
     private int rows;
     private int columns;
-    // Lista de almacenes en el mapa
     private List<Almacen> almacenes;
 
-    // Constructor por defecto que inicializa el mapa con dimensiones predeterminadas
-    public Mapa() {
+    public Mapa(int tipoSimulacion) {
+        this.almacenes = new ArrayList<>();
+        cargarAlmacenes(tipoSimulacion);
+
         this.rows = 70;
         this.columns = 50;
-        this.grid = new NodePosition[rows + 1][columns + 1];
-        this.almacenes = new ArrayList<>();
+        this.mapa = new NodoMapa[rows + 1][columns + 1];
+        cargarNodos();
     }
 
-    // Incializa el mapa con dimensiones específicas y crendo nodos en todas las dimensiones
-    public void initialGrid() {
+    public void cargarAlmacenes(int tipoSimulacion) {
+        int capNorteEste = (tipoSimulacion == 1) ? 0 : 160;
+        almacenes.add(new Almacen(1, "Central", Integer.MAX_VALUE, new Nodo(12, 8)));
+        almacenes.add(new Almacen(2, "Norte", capNorteEste, new Nodo(42, 42)));
+        almacenes.add(new Almacen(3, "Este", capNorteEste, new Nodo(63, 3)));
+    }
+
+    public void cargarNodos() {
+        // Ubicaciones de almacenes
+        Map<String, Boolean> ubicacionesAlmacenes = new HashMap<>();
+        for (Almacen almacen : almacenes) {
+            String key = almacen.getUbicacion().getX() + "," + almacen.getUbicacion().getY();
+            ubicacionesAlmacenes.put(key, true);
+        }
+
+        // Nodos del mapa
         int id = 0;
         for (int i = 0; i <= rows; i++) {
             for (int j = 0; j <= columns; j++) {
-                grid[i][j] = new NodePosition(id, i, j, false);
-                // Verificar si esta posición corresponde a un almacén
-                for (Almacen almacen : almacenes) {
-                    if (almacen.getUbicacion().getX() == i && almacen.getUbicacion().getY() == j) {
-                        grid[i][j].setDepot(true);
-                    }
-                }
-                id++;
+                String coordenada = i + "," + j;
+                boolean esAlmacen = ubicacionesAlmacenes.containsKey(coordenada);
+                mapa[i][j] = new NodoMapa(id++, i, j, esAlmacen);
             }
         }
     }
-    // Inicializa los almacenes en el mapa según el tipo de simulación
-    public void inicializarAlmacenes(int tipoSimulacion) {
-        // SIMULACIÓN DIARIA - Configuración centralizada
-        // Almacén principal en posición estratégica central
-        if (tipoSimulacion == 1) {
-            Almacen central = new Almacen(1, "Central", Integer.MAX_VALUE, new Nodo(12, 8));
-            Almacen norte = new Almacen(2, "Norte", 0, new Nodo(42, 42));
-            Almacen este = new Almacen(3, "Este", 0, new Nodo(63, 3));
 
-            almacenes.add(central);
-            almacenes.add(norte);
-            almacenes.add(este);
-        }
-        else {
-            // SIMULACIÓN TIEMPO REAL - Red distribuida de almacenes
-            // Almacén principal (central de operaciones)
-            Almacen central = new Almacen(1, "Central", Integer.MAX_VALUE, new Nodo(12, 8));
-            Almacen norte = new Almacen(2, "Norte", 160, new Nodo(42, 42));
-            Almacen este = new Almacen(3, "Este", 160, new Nodo(63, 3));
-
-            almacenes.add(central);
-            almacenes.add(norte);
-            almacenes.add(este);
-        }
-    }
-
-    // Limpia los pedidos de todos los nodos del mapa
-    public void limpiarPedidos() {
-        for (int i = 0; i < grid.length; i++) {
-            for (int j = 0; j < grid[1].length; j++) {
-                grid[i][j].setPedido(false);
-            }
-        }
-    }
-    // Limpia las rutas de todos los nodos del mapa
-    public void clearRutas() {
-        for (int i = 0; i < grid.length; i++) {
-            for (int j = 0; j < grid[1].length; j++) {
-                grid[i][j].setRoute(false);
-            }
-        }
+    public void removerPedidos() {
+        for (NodoMapa[] nodoMapas : mapa)
+            for (int j = 0; j < mapa[1].length; j++)
+                nodoMapas[j].setEsPedido(false);
     }
 }

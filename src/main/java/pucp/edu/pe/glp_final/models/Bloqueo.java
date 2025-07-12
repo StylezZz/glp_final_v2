@@ -10,6 +10,7 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -23,9 +24,11 @@ import lombok.Setter;
 @Entity
 @Table(name = "bloqueo")
 public class Bloqueo {
-    private static int contadorId = 1; // Contador estático para IDs
+
     @Id
-    private int id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
     private int anio;
     private int mes;
     private int diaInicio;
@@ -37,24 +40,26 @@ public class Bloqueo {
     private LocalDateTime fechaInicio;
     private LocalDateTime fechaFin;
 
-    @Transient
-    private List<NodoBloqueado> tramo;
+    @OneToMany(mappedBy = "bloqueo", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonManagedReference
+    private List<NodoBloqueado> tramo = new ArrayList<>();
+
+    public void addTramo(NodoBloqueado nodoBloqueo) {
+        tramo.add(nodoBloqueo);
+        nodoBloqueo.setBloqueo(this);
+    }
 
     public static Bloqueo leerBloqueo(String registro, int anio, int mes) {
         Bloqueo bloqueo = new Bloqueo();
-
-        List<NodoBloqueado> tramoBloqueos = new ArrayList<>();
         bloqueo.anio = anio;
         bloqueo.mes = mes;
-        bloqueo.id = contadorId++;
 
-        // Dividir el registro en dos partes usando ":" como separador
+        // Parsing del tiempo (mantener la lógica existente)
         String[] partes = registro.split(":");
         if (partes.length != 2) {
             throw new IllegalArgumentException("Formato de entrada incorrecto");
         }
 
-        // Dividir la primera parte en "inicio" y "fin" usando "-"
         String[] momentoInicioFin = partes[0].split("-");
         if (momentoInicioFin.length != 2) {
             throw new IllegalArgumentException("Formato de inicio/fin incorrecto");
@@ -80,38 +85,35 @@ public class Bloqueo {
         bloqueo.setHoraFin(Integer.parseInt(partesFin[1].replace("h", "")));
         bloqueo.setMinutoFin(Integer.parseInt(partesFin[2].replace("m", "")));
 
-        // Dividir la segunda parte en coordenadas usando ","
+        // Crear fechas
+        LocalDateTime fechaInicio = LocalDateTime.of(anio, mes, bloqueo.getDiaInicio(),
+                bloqueo.getHoraInicio(), bloqueo.getMinutoInicio());
+        LocalDateTime fechaFin = LocalDateTime.of(anio, mes, bloqueo.getDiaFin(),
+                bloqueo.getHoraFin(), bloqueo.getMinutoFin());
+        bloqueo.setFechaInicio(fechaInicio);
+        bloqueo.setFechaFin(fechaFin);
+
+        // Parsing de coordenadas y creación de tramos
         String[] coordenadas = partes[1].split(",");
         if (coordenadas.length % 2 != 0) {
             throw new IllegalArgumentException("Formato de coordenadas incorrecto");
         }
 
-        LocalDateTime fechaInicio = LocalDateTime.of(anio, mes, bloqueo.getDiaInicio(), bloqueo.getHoraInicio(), bloqueo.getMinutoInicio());
-        LocalDateTime fechaFin = LocalDateTime.of(anio, mes, bloqueo.getDiaFin(), bloqueo.getHoraFin(), bloqueo.getMinutoFin());
-        bloqueo.setFechaInicio(fechaInicio);
-        bloqueo.setFechaFin(fechaFin);
-
         for (int i = 0; i < coordenadas.length - 2; i += 2) {
-            NodoBloqueado nodo = new NodoBloqueado();
+            NodoBloqueado nodo = NodoBloqueado.builder()
+                    .x_ini(Integer.parseInt(coordenadas[i]))
+                    .y_ini(Integer.parseInt(coordenadas[i + 1]))
+                    .x_fin(Integer.parseInt(coordenadas[i + 2]))
+                    .y_fin(Integer.parseInt(coordenadas[i + 3]))
+                    .build();
 
-            nodo.setX_ini(Integer.parseInt(coordenadas[i]));
-            nodo.setY_ini(Integer.parseInt(coordenadas[i + 1]));
-
-            nodo.setX_fin(Integer.parseInt(coordenadas[i + 2]));
-            nodo.setY_fin(Integer.parseInt(coordenadas[i + 3]));
-
-            tramoBloqueos.add(nodo);
+            bloqueo.addTramo(nodo);
         }
-
-        bloqueo.setTramo(tramoBloqueos);
 
         return bloqueo;
     }
 
     public static List<Bloqueo> leerArchivoBloqueo(String nombreArchivo) {
-        // Reiniciar el contador de IDs al leer un nuevo archivo
-        contadorId = 1;
-
         System.out.println("=== DEBUG LECTURA DE BLOQUEOS ===");
         System.out.println("Nombre del archivo recibido: " + nombreArchivo);
 
@@ -204,16 +206,11 @@ public class Bloqueo {
         return true; // Bloqueo activo
     }
 
-    // Devuelve los bloqueos activos en cierto momento
     public static List<Bloqueo> bloqueosActivos(List<Bloqueo> bloqueos, Calendar ahora) {
-
         List<Bloqueo> bloqueosActivos = new ArrayList<>();
-
-        for (Bloqueo bloqueo : bloqueos) {
-            if (bloqueo.estaActivo(ahora)) {
+        for (Bloqueo bloqueo : bloqueos)
+            if (bloqueo.estaActivo(ahora))
                 bloqueosActivos.add(bloqueo);
-            }
-        }
         return bloqueosActivos;
     }
 

@@ -1,9 +1,6 @@
 package pucp.edu.pe.glp_final.controller;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,160 +27,135 @@ import pucp.edu.pe.glp_final.service.FileStorageService;
 import pucp.edu.pe.glp_final.service.PedidoService;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/pedidos")
 @Getter
 @Setter
 public class PedidoController {
-    // Lista para almacenar pedidos
+
     private List<Pedido> pedidos;
 
     @Autowired
     private PedidoService pedidoService;
+
     @Autowired
     private FileStorageService storageService;
 
-    // Consulta pedidos con filtrado por día, año y mes
-    @GetMapping("/pedidos")
+    @GetMapping
     @ResponseBody
-    public ResponseEntity<Object> findAll(@RequestParam(required = false) List<Integer> dias,
-                                          @RequestParam(required = false) Integer anio, @RequestParam(required = false) Integer mesPedido) {
-        List<Pedido> pedidos;
+    public ResponseEntity<Object> findAll(
+            @RequestParam(required = false) Integer anio,
+            @RequestParam(required = false) Integer mesPedido,
+            @RequestParam(required = false) List<Integer> dias
+    ) {
         Map<String, Object> response = new HashMap<>();
-
         try {
-            // APLICAR FILTROS TEMPORALES SI SE PROPORCIONAN CRITERIOS
-            if (dias != null && anio != null && mesPedido != null) {
-                // Consulta filtrada por días específicos, año y mes
-                pedidos = pedidoService.findByDiaInAndAnioMes(dias, anio, mesPedido);
-            } else {
-                // Consulta completa sin filtros - retorna todos los pedidos
-                pedidos = pedidoService.findAll();
-            }
+            List<Pedido> pedidos = (dias == null || anio == null || mesPedido == null)
+                    ? pedidoService.obtenerTodos()
+                    : pedidoService.obtenerPedidosPorFecha(dias, anio, mesPedido);
 
-            // ORDENAMIENTO AUTOMÁTICO POR IDENTIFICADOR PARA CONSISTENCIA
-            pedidos = pedidos.stream()
-                    .sorted((p1, p2) -> Integer.compare(p1.getId(), p2.getId()))
-                    .toList();
+            String mensaje = pedidos.isEmpty()
+                    ? "Pedidos no encontrados para la fecha buscada"
+                    : "Para la fecha se encontraron " + pedidos.size() + " pedidos";
 
-            // MANEJO DE RESULTADOS VACÍOS CON RESPUESTA INFORMATIVA
-            if (pedidos.isEmpty()) {
-                response.put("mensaje", "No se encontraron pedidos");
-                response.put("pedidos", new ArrayList<>());
-                return ResponseEntity.ok(response);
-            }
-
-            // CONSTRUCCIÓN DE RESPUESTA EXITOSA CON METADATA
-            response.put("mensaje", "Se encontraron " + pedidos.size() + " pedidos con éxito");
+            response.put("mensaje", mensaje);
             response.put("pedidos", pedidos);
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            // MANEJO DE ERRORES CON INFORMACIÓN DETALLADA
-            response.put("mensaje", "Error al obtener los pedidos");
+            response.put("mensaje", "Error en la consulta de pedidos");
             response.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 
-    //  Busca y retorna un pedido específico por su identificador único
-    @GetMapping("/pedidos/{id}")
+    @GetMapping("/{id}")
     @ResponseBody
     public Pedido findById(@PathVariable int id) {
-        return pedidoService.findById(id);
+        return pedidoService.obtenerPorId(id);
     }
 
-    // Procesa carga masiva de pedidos desde archivo con persistencia completa
-    @PostMapping(value = "/pedidos/leer-pedidos", consumes = "multipart/form-data")
+    //Lectura de archivos de pedidos  SE GUARDA EN BD
+    @PostMapping(value = "/leer-pedidos", consumes = "multipart/form-data")
     @ResponseBody
     public ResponseEntity<Object> uploadFile(@RequestParam("file") MultipartFile file) {
         try {
-            // PROCESAMIENTO INTEGRAL CON PERSISTENCIA COMPLETA
-            // Modalidad: Archivo + BD + Registro de trazabilidad
+            // Primero guardamos el archivo
+            //storageService.saveFile(file);
+
+            // Procesamos el archivo para contar los pedidos
+            //List<Pedido> pedidos = pedidoService.procesarArchivo(file);
             List<Pedido> pedidos = pedidoService.savePedidosArchivo(file);
             Map<String, String> response = new HashMap<>();
             response.put("mensaje", "Se subió el archivo y se procesaron " + pedidos.size() + " pedidos correctamente");
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {
-            // MANEJO DE ERRORES EN PROCESAMIENTO MASIVO
             Map<String, String> response = new HashMap<>();
             response.put("mensaje", "Error al procesar el archivo: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(response);
         }
     }
 
-    // Obtiene los nombres de los archivos de pedidos subidos
-    @GetMapping("/pedidos/nombre-pedidos-archivos")
+    @GetMapping("/nombre-pedidos-archivos")
     @ResponseBody
-    public ResponseEntity<?> obtenerNombrePedidosArchivo(){
-        Map<String,Object> response = new HashMap<>();
-        List<String> nombres = pedidoService.obtenerNombresArchivosSubidos();
-        response.put("Mensaje","Nombres de archivos");
-        response.put("nombresPedidos",nombres);
+    public ResponseEntity<?> obtenerNombrePedidosArchivo() {
+        Map<String, Object> response = new HashMap<>();
+        List<String> nombres = pedidoService.getMesesPedido();
+        response.put("Mensaje", "Nombres de archivos");
+        response.put("nombresPedidos", nombres);
         return ResponseEntity.ok(response);
     }
 
-    // Procesa carga masiva diaria de pedidos sin almacenamiento de archivo.
-    @PostMapping(value = "/pedidos/upload/diario", consumes = "multipart/form-data")
+    //Lectura de archivos de pedidos, donde se guarda en la base de datos
+    @PostMapping(value = "/upload/diario", consumes = "multipart/form-data")
     @ResponseBody
     public ResponseEntity<Object> uploadFileDiario(@RequestParam("files") MultipartFile file) {
         try {
-            // PROCESAMIENTO EN MEMORIA SIN ALMACENAMIENTO DE ARCHIVO
+            // Procesar directamente el archivo sin guardarlo
             List<Pedido> pedidos = pedidoService.procesarArchivo(file);
 
-            // PERSISTENCIA INDIVIDUAL DE PEDIDOS PROCESADOS
+            // Guardar los pedidos en la base de datos
             for (Pedido pedido : pedidos) {
-                pedidoService.save(pedido);
+                pedidoService.guardar(pedido);
             }
 
             Map<String, String> mapa = new HashMap<String, String>();
             mapa.put("Mensaje", "Se procesaron " + pedidos.size() + " pedidos correctamente");
             return ResponseEntity.status(HttpStatus.OK).body(mapa);
         } catch (Exception e) {
-            // MANEJO DE ERRORES EN PROCESAMIENTO DIARIO
             Map<String, String> mapa = new HashMap<String, String>();
             mapa.put("Error", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(mapa);
         }
     }
 
-    //  Crea un nuevo pedido con validaciones y cálculos automáticos de campos temporales
-    @PostMapping("/pedidos")
+    @PostMapping("/")
     @ResponseBody
     public Pedido save(@RequestBody Pedido pedido) {
-        // CÁLCULO DE HORA DE INICIO EN MINUTOS ABSOLUTOS
-        // Fórmula: (día × 1440) + (hora × 60) + minutos
+
         pedido.setHoraDeInicio(pedido.getDia() * 1440 + pedido.getHora() * 60 + pedido.getMinuto());
-        // CÁLCULO DE TIEMPO LÍMITE DE LLEGADA
-        // Hora inicio + límite de entrega en minutos
         pedido.setTiempoLlegada(pedido.getHoraDeInicio() + pedido.getHorasLimite() * 60);
-        // CONSTRUCCIÓN DE FECHA Y HORA COMPLETA DE REGISTRO
         pedido.setFechaDeRegistro(LocalDateTime.of(pedido.getAnio(), pedido.getMesPedido(), pedido.getDia(),
                 pedido.getHora(), pedido.getMinuto()));
-        // CÁLCULO DE FECHA LÍMITE DE ENTREGA
         LocalDateTime fechaEntrega = pedido.getFechaDeRegistro().plusHours(pedido.getHorasLimite());
         pedido.setFechaEntrega(fechaEntrega);
-        // TIMESTAMP DE CREACIÓN DEL REGISTRO
         pedido.setFecDia(LocalDateTime.now());
 
-        return pedidoService.save(pedido);
+        return pedidoService.guardar(pedido);
     }
 
-    // Elimina un pedido específico por su identificador único
-    @DeleteMapping("/pedidos/{id}")
+    @DeleteMapping("/{id}")
     @ResponseBody
     public void deleteById(@PathVariable int id) {
         pedidoService.deleteById(id);
     }
 
-    // Actualiza un pedido existente con validaciones y cálculos automáticos de campos temporales
-    @PutMapping("/pedidos/{id}")
+    @PutMapping("/{id}")
     @ResponseBody
     public Pedido update(@RequestBody Pedido pedido) {
-        return pedidoService.save(pedido);
+        return pedidoService.guardar(pedido);
     }
 
-    // Elimina todos los pedidos de la base de datos con manejo de errores
-    @DeleteMapping("/pedidos")
+    @DeleteMapping
     @ResponseBody
     public ResponseEntity<Object> deleteAll() {
         try {
@@ -198,20 +170,16 @@ public class PedidoController {
         }
     }
 
-    // Cuenta el total de pedidos en la base de datos con manejo de errores
-    @GetMapping("/pedidos/count")
+    @GetMapping("/count")
     @ResponseBody
     public ResponseEntity<Object> count() {
         Map<String, Object> response = new HashMap<>();
         try {
-            // CONTEO TOTAL DE PEDIDOS EN SISTEMA
-            long totalPedidos = pedidoService.count();
-            response.put("mensaje", "Conteo realizado con éxito");
-            response.put("total", totalPedidos);
+            response.put("mensaje", "Pedidos totales");
+            response.put("total", pedidoService.contarPedidosTotales());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            // MANEJO DE ERRORES EN OPERACIÓN DE CONTEO
-            response.put("mensaje", "Error al contar pedidos");
+            response.put("mensaje", "Error en la cuenta de pedidos");
             response.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }

@@ -23,17 +23,18 @@ public class BloqueoService {
     @Autowired
     private BloqueoRepository bloqueoRepository;
 
-    //sube los archivos y id automaticamente, en teroia xDD
     public List<Bloqueo> saveBloqueoArchivo(MultipartFile file) {
         String nameFile = file.getOriginalFilename();
         String anio = nameFile.substring(0, 4);
         String mes = nameFile.substring(4, 6);
         List<Bloqueo> bloqueos = new ArrayList<>();
+
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()));
             String registro;
             while ((registro = reader.readLine()) != null && !registro.isBlank()) {
                 Bloqueo bloqueo = Bloqueo.leerBloqueo(registro, Integer.parseInt(anio), Integer.parseInt(mes));
+                // Cascade.ALL se encarga de persistir automáticamente los tramos
                 bloqueos.add(bloqueoRepository.save(bloqueo));
             }
         } catch (IOException e) {
@@ -42,25 +43,10 @@ public class BloqueoService {
         return bloqueos;
     }
 
-
-    public List<Bloqueo> leerArchivoBloqueo(Path file) {
-        List<Bloqueo> bloqueos = new ArrayList<>();
-        String nombreArchivo = file.getFileName().toString();
-        int anio = Integer.parseInt(nombreArchivo.substring(0, 4)); // Extraer los primeros 4 dígitos como año
-        int mes = Integer.parseInt(nombreArchivo.substring(4, 6)); // Extraer los siguientes 2 dígitos como mes
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(Files.newInputStream(file)))) {
-            String linea;
-            while ((linea = br.readLine()) != null) {
-                Bloqueo bloqueo = Bloqueo.leerBloqueo(linea, anio, mes);
-                bloqueos.add(bloqueo);
-            }
-        } catch (IOException e) {
-            System.out.println("Error al leer el archivo");
-        }
-        return bloqueos;
+    public List<Bloqueo> obtenerBloqueosPorAnioMes(int anio, int mes) {
+        return bloqueoRepository.findByAnioAndMesWithTramos(anio, mes);
     }
 
-    //Dado una Lista de pedidos devolver los pedidos de una semana dada el dia de inicio
     public List<Bloqueo> getBloqueosSemanal(List<Bloqueo> bloqueos, int dia, int mes, int anio, int hora, int minuto) {
         List<Bloqueo> bloqueosSemanal = new ArrayList<>();
         LocalDateTime fechaInicio = LocalDateTime.of(anio, mes, dia, hora, minuto);

@@ -30,25 +30,24 @@ public class PedidoService {
     @Autowired
     private ClientRepository clientRepository;
 
-    public List<Pedido> findAll() {
+    public List<Pedido> obtenerTodos() {
         return pedidoRepository.findAll();
     }
 
-    public Pedido findById(Integer id) {
+    public Pedido obtenerPorId(Integer id) {
         return pedidoRepository.findById(id).orElse(null);
     }
 
-    public Pedido save(Pedido pedido) {
+    public Pedido guardar(Pedido pedido) {
         return pedidoRepository.save(pedido);
     }
 
-    public long count() {
+    public long contarPedidosTotales() {
         return pedidoRepository.count();
     }
 
-    // usar findByDiaInAndAnioMes
-    public List<Pedido> findByDiaInAndAnioMes(List<Integer> dias, Integer anio, Integer mes_pedido) {
-        return pedidoRepository.findByDiaInAndAnioAndMesPedido(dias, anio, mes_pedido);
+    public List<Pedido> obtenerPedidosPorFecha(List<Integer> dias, Integer anio, Integer mes_pedido) {
+        return pedidoRepository.findByDiaInAndAnioAndMesPedidoOrderById(dias, anio, mes_pedido);
     }
 
     public List<Pedido> findByFechaPedidoBetween(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
@@ -62,7 +61,6 @@ public class PedidoService {
     public void deleteAll() {
         pedidoRepository.deleteAll();
     }
-
 
     public List<Pedido> savePedidosArchivo(MultipartFile file) {
         String nameFile = file.getOriginalFilename();
@@ -83,9 +81,9 @@ public class PedidoService {
                     cliente = new Cliente();
                     cliente.setId(pedido.getIdCliente());
                     cliente.setNombre("Cliente " + pedido.getIdCliente());
-                    cliente.setCorreo("clienteNuevo" + pedido.getIdCliente() + "@glpsoftware.com");
-                    cliente.setTelefono(9999999);
-                    cliente.setTipo(TipoCliente.CONDOMINIOS); // podría añadir un tipo Nuevo
+                    cliente.setCorreo("cliente" + pedido.getIdCliente() + "@glplogistics.com.pe");
+                    cliente.setTelefono(987654321);
+                    cliente.setTipo(TipoCliente.CONDOMINIOS);
                     clientRepository.save(cliente);
                 } else cliente = clienteOptional.get();
 
@@ -98,9 +96,6 @@ public class PedidoService {
         return pedidos;
     }
 
-
-    // Dado una Lista de pedidos devolver los pedidos de una semana dada el dia de
-    // inicio
     public List<Pedido> getPedidosSemana(List<Pedido> pedidos, int dia, int mes, int anio, int hora, int minuto) {
         List<Pedido> pedidosSemana = new ArrayList<>();
         LocalDateTime fechaInicio = LocalDateTime.of(anio, mes, dia, hora, minuto);
@@ -116,11 +111,9 @@ public class PedidoService {
     }
 
     public List<Pedido> dividirPedidos(List<Pedido> pedidos, int tipoSimulacion) {
-
         if (tipoSimulacion == 1) {
             this.pedidosCarga = new ArrayList<>();
             for (Pedido pedido : pedidos) {
-
                 int demanda = pedido.getCantidadGLP();
                 while (demanda > 25) {
                     int cantidad = Math.min(demanda, 5); // Divide en pedidos de 5 o menos
@@ -135,14 +128,11 @@ public class PedidoService {
                 if (demanda <= 25) {
                     pedidosCarga.add(pedido);
                 }
-
             }
-
             return pedidosCarga;
         } else {
             this.pedidosCarga = new ArrayList<>();
             for (Pedido pedido : pedidos) {
-
                 int demanda = pedido.getCantidadGLP();
                 while (demanda > 0) {
                     int cantidad = Math.min(demanda, 5); // Divide en pedidos de 5 o menos
@@ -154,7 +144,6 @@ public class PedidoService {
                     demanda = demanda - cantidad;
                     pedidosCarga.add(pedido1);
                 }
-
             }
 
             return pedidosCarga;
@@ -165,7 +154,6 @@ public class PedidoService {
     public List<Pedido> procesarArchivo(MultipartFile file) {
         List<Pedido> pedidos = new ArrayList<>();
 
-        // Obtener año y mes del nombre del archivo
         String nombreArchivo = file.getOriginalFilename();
         String yearString = nombreArchivo.substring(6, 10);
         String monthString = nombreArchivo.substring(10, 12);
@@ -185,8 +173,7 @@ public class PedidoService {
         }
     }
 
-    public List<String> obtenerNombresArchivosSubidos() {
-        return pedidoRepository.findDistintosArchivosNames();
+    public List<String> getMesesPedido() {
+        return pedidoRepository.getMesesPedido();
     }
-
 }

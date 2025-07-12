@@ -11,13 +11,35 @@ import pucp.edu.pe.glp_final.models.Pedido;
 
 public interface PedidoRepository extends JpaRepository<Pedido, Integer> {
 
-    //Buscar por una lista de dias y por el atributo anio_mes
-    List<Pedido> findByDiaInAndAnioAndMesPedido(List<Integer> dias, Integer anio, Integer mes_pedido);
+    @Override
+    @Query("SELECT p FROM Pedido p ORDER BY p.id")
+    List<Pedido> findAll();
 
+    List<Pedido> findByDiaInAndAnioAndMesPedidoOrderById(
+            List<Integer> dias,
+            Integer anio,
+            Integer mes_pedido
+    );
 
-    List<Pedido> findByfechaDeRegistroBetween(@Param("fechaInicio") LocalDateTime fechaInicio, @Param("fechaFin") LocalDateTime fechaFin);
+    List<Pedido> findByfechaDeRegistroBetween(
+            @Param("fechaInicio") LocalDateTime fechaInicio,
+            @Param("fechaFin") LocalDateTime fechaFin
+    );
 
-    @Query("SELECT DISTINCT CONCAT('ventas',p.anio, LPAD(CAST(p.mesPedido AS string), 2, '0'), '.txt') " +
+    @Query("SELECT DISTINCT CONCAT('Pedidos de ', CASE p.mesPedido " +
+            "WHEN 1 THEN 'enero' " +
+            "WHEN 2 THEN 'febrero' " +
+            "WHEN 3 THEN 'marzo' " +
+            "WHEN 4 THEN 'abril' " +
+            "WHEN 5 THEN 'mayo' " +
+            "WHEN 6 THEN 'junio' " +
+            "WHEN 7 THEN 'julio' " +
+            "WHEN 8 THEN 'agosto' " +
+            "WHEN 9 THEN 'septiembre' " +
+            "WHEN 10 THEN 'octubre' " +
+            "WHEN 11 THEN 'noviembre' " +
+            "WHEN 12 THEN 'diciembre' " +
+            "ELSE 'mes_desconocido' END, ' ', CAST(p.anio AS string))" +
             "FROM Pedido p")
-    List<String> findDistintosArchivosNames();
+    List<String> getMesesPedido();
 }

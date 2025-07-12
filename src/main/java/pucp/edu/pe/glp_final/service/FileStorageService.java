@@ -15,7 +15,6 @@ public class FileStorageService implements FileRepository {
 
     private final Path rootPedidos = Paths.get("src/main/java/com/plg/backend/data/pedidos.20250419/pedidos.20250419");
     private final Path rootBloqueos = Paths.get("src/main/java/com/plg/backend/data/bloqueos");
-    private final String fileBloqueo = "bloqueos";
 
     @Override
     public void saveFile(MultipartFile file) {
@@ -55,11 +54,5 @@ public class FileStorageService implements FileRepository {
     public boolean doesFileExist(MultipartFile file) {
         Path targetPath = file.getOriginalFilename().contains("bloqueos") ? rootBloqueos : rootPedidos;
         return Files.exists(targetPath.resolve(file.getOriginalFilename()));
-    }
-
-    public Path getFileBloqueo(int anio, int mes) {
-        String mesString = String.format("%02d", mes);
-        String anioString = Integer.toString(anio);
-        return this.rootBloqueos.resolve(anioString + mesString + "." + fileBloqueo + ".txt");
     }
 }

@@ -1,42 +1,37 @@
 package pucp.edu.pe.glp_final.service;
 
 import java.util.List;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.ArrayList;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import jakarta.annotation.PostConstruct;
 import pucp.edu.pe.glp_final.models.Camion;
-import pucp.edu.pe.glp_final.repository.VehiculoRepository;
+import pucp.edu.pe.glp_final.repository.CamionRepository;
 
 @Service
 public class CamionService {
 
     @Autowired
-    private VehiculoRepository vehiculoRepository;
+    private CamionRepository camionRepository;
 
     public List<Camion> findAll() {
-        return vehiculoRepository.findAll();
+        return camionRepository.findAll();
     }
 
     public Camion save(Camion vehiculo) {
-        return vehiculoRepository.save(vehiculo);
+        return camionRepository.save(vehiculo);
     }
 
     public List<Camion> saveAll(List<Camion> vehiculos) {
-        return vehiculoRepository.saveAll(vehiculos);
+        return camionRepository.saveAll(vehiculos);
     }
 
     public void deleteAll() {
-        vehiculoRepository.deleteAll();
+        camionRepository.deleteAll();
     }
 
     public Camion findByVehiculo(String Codigo) {
-        return vehiculoRepository.findByCodigo(Codigo);
+        return camionRepository.findByCodigo(Codigo);
     }
 
 }
