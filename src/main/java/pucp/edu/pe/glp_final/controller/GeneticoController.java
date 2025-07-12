@@ -28,7 +28,7 @@ import pucp.edu.pe.glp_final.models.enums.TipoIncidente;
 import pucp.edu.pe.glp_final.service.CamionService;
 import pucp.edu.pe.glp_final.service.PedidoService;
 
-@RequestMapping("/api/aco")
+@RequestMapping("/api/genetico")
 @RestController
 public class GeneticoController {
 
