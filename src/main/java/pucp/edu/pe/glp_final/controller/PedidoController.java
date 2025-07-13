@@ -88,34 +88,12 @@ public class PedidoController {
 
     @GetMapping("/meses")
     @ResponseBody
-    public ResponseEntity<?> obtenerNombrePedidosArchivo() {
+    public ResponseEntity<?> obtenerMesesCargados() {
         Map<String, Object> response = new HashMap<>();
         List<String> nombres = pedidoService.getMesesPedido();
         response.put("Mensaje", "Nombres de archivos");
         response.put("nombresPedidos", nombres);
         return ResponseEntity.ok(response);
-    }
-
-    @PostMapping(value = "/upload/diario", consumes = "multipart/form-data")
-    @ResponseBody
-    public ResponseEntity<Object> uploadFileDiario(@RequestParam("files") MultipartFile file) {
-        try {
-            // Procesar directamente el archivo sin guardarlo
-            List<Pedido> pedidos = pedidoService.procesarArchivo(file);
-
-            // Guardar los pedidos en la base de datos
-            for (Pedido pedido : pedidos) {
-                pedidoService.guardar(pedido);
-            }
-
-            Map<String, String> mapa = new HashMap<String, String>();
-            mapa.put("Mensaje", "Se procesaron " + pedidos.size() + " pedidos correctamente");
-            return ResponseEntity.status(HttpStatus.OK).body(mapa);
-        } catch (Exception e) {
-            Map<String, String> mapa = new HashMap<String, String>();
-            mapa.put("Error", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(mapa);
-        }
     }
 
     @PostMapping

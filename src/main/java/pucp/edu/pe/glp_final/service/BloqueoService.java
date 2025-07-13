@@ -3,8 +3,6 @@ package pucp.edu.pe.glp_final.service;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -61,8 +59,8 @@ public class BloqueoService {
         return bloqueosSemanal;
     }
 
-    public List<String> obtenerNombresArchivosSubidos() {
-        return bloqueoRepository.findDistintosArchivosNames();
+    public List<String> getMesesBloqueo() {
+        return bloqueoRepository.getMesesBloqueo();
     }
 
 }

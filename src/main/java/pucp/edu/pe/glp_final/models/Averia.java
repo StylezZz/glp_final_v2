@@ -21,28 +21,19 @@ public class Averia {
     private String descripcion;
 
     public static Averia leerRegistro(String registro) {
-
         Averia averia = new Averia();
-
         String[] partes = registro.split("_");
-
-        // Verificar si el registro tiene el formato esperado
-        if (partes.length != 3) {
+        if (partes.length != 3)
             throw new IllegalArgumentException("Formato de registro incorrecto: " + registro);
-        }
 
         String[] turno = partes[0].split("t");
-        if (turno.length != 2) {
+        if (turno.length != 2)
             throw new IllegalArgumentException("Formato de turno incorrecto: " + partes[0]);
-        }
+
         averia.setTurnoAveria(Integer.parseInt(turno[1]));
-
         averia.setCodigoCamion(partes[1]);
-
         String[] tipoIncidente = partes[2].split("ti");
-        if (turno.length != 2) {
-            throw new IllegalArgumentException("Formato de incidente incorrecto: " + partes[0]);
-        }
+
         averia.setTipoAveria(TipoIncidente.values()[Integer.parseInt(tipoIncidente[1])]);
 
         return averia;

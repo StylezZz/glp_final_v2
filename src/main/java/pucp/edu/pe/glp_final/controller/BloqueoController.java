@@ -1,6 +1,5 @@
 package pucp.edu.pe.glp_final.controller;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,9 +31,9 @@ public class BloqueoController {
 
     @GetMapping("/meses")
     @ResponseBody
-    public ResponseEntity<?> obtenerNombreBloqueosArchivo() {
+    public ResponseEntity<?> obtenerBloqueosCargados() {
         Map<String, Object> response = new HashMap<>();
-        List<String> nombres = bloqueoService.obtenerNombresArchivosSubidos();
+        List<String> nombres = bloqueoService.getMesesBloqueo();
         response.put("Mensaje", "Nombres de archivos");
         response.put("nombresBloqueos", nombres);
         return ResponseEntity.ok(response);

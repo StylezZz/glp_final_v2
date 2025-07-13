@@ -23,7 +23,7 @@ public class Genetico {
     private Mapa mapa;
     private List<Camion> camiones;
     private List<Pedido> pedidos;
-    private List<Pedido> originalPedidos;
+    private List<Pedido> pedidosCompletos;
     private List<Pedido> pedidosNuevos;
     private List<Bloqueo> bloqueosActivos;
     private double[][][][] matrizPoblacion;
@@ -98,11 +98,11 @@ public class Genetico {
                 this.pedidos.add(pedido);
             }
         }
-        this.originalPedidos = new ArrayList<>();
+        this.pedidosCompletos = new ArrayList<>();
         for (Pedido pedido : pedidoOriginal) {
             if (pedido.getFechaDeRegistro().isBefore(fechaIteracion)
                     || pedido.getFechaDeRegistro().isEqual(fechaIteracion)) {
-                originalPedidos.add(pedido);
+                pedidosCompletos.add(pedido);
             }
         }
     }
@@ -115,7 +115,7 @@ public class Genetico {
             int minuto
     ) {
         LocalDateTime fechaActual = LocalDateTime.of(anio, mes, dia, hora, minuto);
-        for (Pedido pedido : originalPedidos) {
+        for (Pedido pedido : pedidosCompletos) {
             if (!pedido.isEntregadoCompleto()) {
                 if (pedido.getFechaEntrega().isBefore(fechaActual) || pedido.getFechaEntrega().isEqual(fechaActual)) {
                     for (Pedido pedido2 : pedidos) {
@@ -150,43 +150,10 @@ public class Genetico {
                     if (mes == ubicacion.getMes() && anio == ubicacion.getAnio()) {
                         double startTime = timer;
                         if (Math.round(ubicacion.getTiempoInicio()) < startTime) {
-                            distanciaRecorrida += 1;
-                            camion.setUbicacionActual(ubicacion);
-                            camion.setDistanciaRecorrida(distanciaRecorrida);
-                            camion.getUbicacionActual().setEsRuta(false);
-                            if (ubicacion.isEsPedido()) {
-                                if (ubicacion.getMes() <= mes && ubicacion.getAnio() <= anio) {
-                                    ubicacion.getPedido().setEntregado(true);
-                                    ubicacion.getPedido().setHoraDeInicio((int) ubicacion.getTiempoInicio());
-                                    ubicacion.getPedido().setTiempoLlegada((int) ubicacion.getTiempoFin());
-                                    camion.asignar(ubicacion.getPedido());
-                                }
-                            }
+                            distanciaRecorrida = getDistanciaRecorrida(anio, mes, camion, distanciaRecorrida, ubicacion);
                             if (ubicacion.isEsAlmacen()) {
                                 for (Almacen deposito2 : mapa.getAlmacenes()) {
-                                    if (hora == 0 && minuto >= 0) {
-                                        deposito2.setCapacidadDisponible(deposito2.getCapacidad());
-                                    }
-                                    if (deposito2.getUbicacion().getX() == camion.getUbicacionActual().getX()
-                                            && deposito2.getUbicacion().getY() == camion.getUbicacionActual().getY()) {
-                                        if (deposito2.getUbicacion().getX() == 12 && deposito2.getUbicacion().getY() == 8) {
-                                            camion.setCargaAsignada(0);
-                                            camion.setGlpDisponible(camion.getCarga());
-                                            camion.setDistanciaRecorrida(0.0);
-                                        } else {
-                                            if (deposito2.getCapacidadDisponible() - 2 <= 0) {
-                                                camion.setCargaAsignada(0);
-                                                camion.setGlpDisponible(camion.getCarga());
-                                                camion.setDistanciaRecorrida(0.0);
-                                                deposito2.setCapacidadDisponible(0);
-                                            } else {
-                                                camion.setCargaAsignada(0);
-                                                camion.setDistanciaRecorrida(0.0);
-                                                camion.setGlpDisponible(camion.getCarga());
-
-                                            }
-                                        }
-                                    }
+                                    gestionarCapacidadesAlmacen(hora, minuto, camion, deposito2);
 
                                     camion.setCargaAnterior(0);
                                 }
@@ -225,44 +192,10 @@ public class Genetico {
                     if (mes == ubicacion.getMes() && anio == ubicacion.getAnio()) {
                         double startTime = timer;
                         if ((int) ubicacion.getTiempoFin() <= startTime) {
-                            distanciaRecorrida += 1;
-                            camion.setUbicacionActual(ubicacion);
-                            camion.setDistanciaRecorrida(distanciaRecorrida);
-                            camion.getUbicacionActual().setEsRuta(false);
-                            if (ubicacion.isEsPedido()) {
-                                if (ubicacion.getMes() <= mes && ubicacion.getAnio() <= anio) {
-                                    ubicacion.getPedido().setEntregado(true);
-                                    ubicacion.getPedido().setHoraDeInicio((int) ubicacion.getTiempoInicio());
-                                    ubicacion.getPedido().setTiempoLlegada((int) ubicacion.getTiempoFin());
-                                    camion.asignar(ubicacion.getPedido());
-                                }
-                            }
+                            distanciaRecorrida = getDistanciaRecorrida(anio, mes, camion, distanciaRecorrida, ubicacion);
                             if (ubicacion.isEsAlmacen()) {
                                 for (Almacen deposito2 : mapa.getAlmacenes()) {
-                                    if (hora == 0 && minuto >= 0) {
-                                        deposito2.setCapacidadDisponible(deposito2.getCapacidad());
-                                    }
-                                    if (deposito2.getUbicacion().getX() == camion.getUbicacionActual().getX()
-                                            && deposito2.getUbicacion().getY() == camion.getUbicacionActual().getY()) {
-                                        if (deposito2.getUbicacion().getX() == 12 && deposito2.getUbicacion().getY() == 8) {
-                                            camion.setCargaAsignada(0);
-                                            camion.setGlpDisponible(camion.getCarga());
-                                            camion.setDistanciaRecorrida(0.0);
-                                        } else {
-                                            if (deposito2.getCapacidadDisponible() - 2 <= 0) {
-                                                camion.setCargaAsignada(0);
-                                                camion.setGlpDisponible(camion.getCarga());
-                                                camion.setDistanciaRecorrida(0.0);
-                                                deposito2.setCapacidadDisponible(0);
-                                            } else {
-                                                camion.setCargaAsignada(0);
-                                                camion.setDistanciaRecorrida(0.0);
-                                                camion.setGlpDisponible(camion.getCarga());
-
-                                            }
-                                        }
-                                    }
-
+                                    gestionarCapacidadesAlmacen(hora, minuto, camion, deposito2);
                                 }
                                 ubicacion.setTiempoInicio(startTime);
                                 ubicacion.setTiempoFin(startTime + 1.2);
@@ -270,11 +203,9 @@ public class Genetico {
 
                         } else {
                             if (ubicacion.isEsPedido()) {
-                                if (ubicacion.getMes() <= mes && ubicacion.getAnio() <= anio) {
-                                    ubicacion.getPedido().setEntregado(false);
-                                    ubicacion.getPedido().setAsignado(false);
-                                    ubicacion.getPedido().setIdCamion(null);
-                                }
+                                ubicacion.getPedido().setEntregado(false);
+                                ubicacion.getPedido().setAsignado(false);
+                                ubicacion.getPedido().setIdCamion(null);
                             }
                             if (ubicacion.isEsAlmacen()) {
                                 if ((int) ubicacion.getTiempoFin() > startTime) {
@@ -294,7 +225,49 @@ public class Genetico {
             i++;
         }
         Comparator<Pedido> comparadorPorTiempoDeLlegada = Comparator.comparing(Pedido::getFechaEntrega);
-        originalPedidos.sort(comparadorPorTiempoDeLlegada);
+        pedidosCompletos.sort(comparadorPorTiempoDeLlegada);
+    }
+
+    private void gestionarCapacidadesAlmacen(int hora, int minuto, Camion camion, Almacen deposito2) {
+        if (hora == 0 && minuto >= 0) {
+            deposito2.setCapacidadDisponible(deposito2.getCapacidad());
+        }
+        if (deposito2.getUbicacion().getX() == camion.getUbicacionActual().getX()
+                && deposito2.getUbicacion().getY() == camion.getUbicacionActual().getY()) {
+            if (deposito2.getUbicacion().getX() == 12 && deposito2.getUbicacion().getY() == 8) {
+                camion.setCargaAsignada(0);
+                camion.setGlpDisponible(camion.getCarga());
+                camion.setDistanciaRecorrida(0.0);
+            } else {
+                if (deposito2.getCapacidadDisponible() - 2 <= 0) {
+                    camion.setCargaAsignada(0);
+                    camion.setGlpDisponible(camion.getCarga());
+                    camion.setDistanciaRecorrida(0.0);
+                    deposito2.setCapacidadDisponible(0);
+                } else {
+                    camion.setCargaAsignada(0);
+                    camion.setDistanciaRecorrida(0.0);
+                    camion.setGlpDisponible(camion.getCarga());
+
+                }
+            }
+        }
+    }
+
+    private double getDistanciaRecorrida(int anio, int mes, Camion camion, double distanciaRecorrida, NodoMapa ubicacion) {
+        distanciaRecorrida += 1;
+        camion.setUbicacionActual(ubicacion);
+        camion.setDistanciaRecorrida(distanciaRecorrida);
+        camion.getUbicacionActual().setEsRuta(false);
+        if (ubicacion.isEsPedido()) {
+            if (ubicacion.getMes() <= mes && ubicacion.getAnio() <= anio) {
+                ubicacion.getPedido().setEntregado(true);
+                ubicacion.getPedido().setHoraDeInicio((int) ubicacion.getTiempoInicio());
+                ubicacion.getPedido().setTiempoLlegada((int) ubicacion.getTiempoFin());
+                camion.asignar(ubicacion.getPedido());
+            }
+        }
+        return distanciaRecorrida;
     }
 
     public void verificarAverias(
@@ -380,7 +353,7 @@ public class Genetico {
     }
 
     public void entregadosCompletos() {
-        for (Pedido pedido : originalPedidos) {
+        for (Pedido pedido : pedidosCompletos) {
             if (pedido.isEntregadoCompleto()) {
                 for (Pedido pedido2 : pedidos) {
                     if (pedido.getId() == pedido2.getId()) {
@@ -528,7 +501,7 @@ public class Genetico {
                         if (posicion.isEsPedido()) {
                             camion.setCargaAsignada(
                                     camion.getCargaAsignada() + posicion.getPedido().getCantidadGLP());
-                            for (Pedido pedidoOriginal : originalPedidos) {
+                            for (Pedido pedidoOriginal : pedidosCompletos) {
                                 if (pedidoOriginal.getId() == posicion.getPedido().getId()) {
                                     posicion.getPedido().setEntregado(true);
                                     pedidoOriginal
@@ -885,7 +858,7 @@ public class Genetico {
             for (int j = 0; j <= mapa.getColumns(); j++) {
                 for (int k = 0; k <= mapa.getRows(); k++) {
                     for (int l = 0; l <= mapa.getColumns(); l++) {
-                        matrizPoblacion[i][j][k][l] = 0.1; // Puedes elegir un valor adecuado
+                        matrizPoblacion[i][j][k][l] = 0.1;
                     }
                 }
             }

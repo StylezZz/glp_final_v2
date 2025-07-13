@@ -61,87 +61,67 @@ public class GeneticoController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/simulacionRuta/dia-dia")
+    @PostMapping("/dia-dia")
     @ResponseBody
-    public ResponseEntity<List<Camion>> simulacionRutaDiaria(
+    public ResponseEntity<List<Camion>> ejecutarDia(
             @RequestParam(required = false) int anio,
             @RequestParam(required = false) int mes, @RequestParam(required = false) double timer,
             @RequestParam(required = false) int minutosPorIteracion,
             @RequestBody(required = false) List<Averia> averias
     ) {
-        if (averias == null) {
-            averias = new ArrayList<>();
-        }
+        if (averias == null) averias = new ArrayList<>();
         int dia = ((int) timer / 1440);
         int hora = (((int) timer % 1440) / 60);
         int minuto = ((int) timer % 60);
 
-        averias(averias, timer);
-
-        if (primeraVezDiaria == 0) {
-            List<Integer> dias = new ArrayList<>();
-            dias.add(dia);
-            pedidos = pedidoService.obtenerPedidosPorFecha(dias, anio, mes);
-            pedidosSimulacion = pedidoService.dividirPedidos(pedidos, 1);
-            aco.simulacionRuteo(anio, mes, dia, hora, minuto, minutosPorIteracion, pedidosSimulacion,
-                    new ArrayList<>(), pedidos,
-                    primeraVezDiaria, timer, 1);
-            for (Camion vehiculo : camiones) {
-                if (vehiculo.getRoute().isEmpty()) {
-                    continue;
-                } else {
-                    for (NodoMapa ubicacion : vehiculo.getRoute()) {
-                        if (ubicacion.isEsPedido()) {
-                            if (ubicacion.getPedido().isEntregado()) {
-                                for (Pedido pedido : pedidos) {
-                                    if (pedido.getId() == ubicacion.getPedido().getId()) {
-                                        pedido.setEntregado(true);
-                                        pedido.setEntregadoCompleto(true);
-                                        pedidoService.guardar(pedido);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        } else {
-            List<Integer> dias = new ArrayList<>();
-            dias.add(dia);
-            pedidos = pedidoService.obtenerPedidosPorFecha(dias, anio, mes);
-            pedidosSimulacion = pedidoService.dividirPedidos(pedidos, 1);
-            aco.simulacionRuteo(anio, mes, dia, hora, minuto, minutosPorIteracion, pedidosSimulacion,
-                    new ArrayList<>(), pedidos,
-                    primeraVezDiaria, timer, 1);
-            for (Camion vehiculo : camiones) {
-                if (vehiculo.getRoute().isEmpty()) {
-                    continue;
-                } else {
-                    for (NodoMapa ubicacion : vehiculo.getRoute()) {
-                        if (ubicacion.isEsPedido()) {
-                            if (ubicacion.getPedido().isEntregado()) {
-                                for (Pedido pedido : pedidos) {
-                                    if (pedido.getId() == ubicacion.getPedido().getId()) {
-                                        pedido.setEntregado(true);
-                                        pedido.setEntregadoCompleto(true);
-                                        pedidoService.guardar(pedido);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
+        gestionarAverias(averias, timer);
+        gestionarPedidos(anio, mes, timer, minutosPorIteracion, dia, hora, minuto);
         primeraVezDiaria = 1;
         return ResponseEntity.ok(aco.getCamiones());
 
     }
 
-    @PostMapping("/simulacionRuta/semanal")
+    private void gestionarPedidos(@RequestParam(required = false) int anio, @RequestParam(required = false) int mes, @RequestParam(required = false) double timer, @RequestParam(required = false) int minutosPorIteracion, int dia, int hora, int minuto) {
+        List<Integer> dias = new ArrayList<>();
+        dias.add(dia);
+        pedidos = pedidoService.obtenerPedidosPorFecha(dias, anio, mes);
+        pedidosSimulacion = pedidoService.dividirPedidos(pedidos, 1);
+        aco.simulacionRuteo(
+                anio,
+                mes,
+                dia,
+                hora,
+                minuto,
+                minutosPorIteracion,
+                pedidosSimulacion,
+                new ArrayList<>(),
+                pedidos,
+                primeraVezDiaria,
+                timer,
+                1
+        );
+        for (Camion vehiculo : camiones) {
+            if (!vehiculo.getRoute().isEmpty()) {
+                for (NodoMapa ubicacion : vehiculo.getRoute()) {
+                    if (ubicacion.isEsPedido()) {
+                        if (ubicacion.getPedido().isEntregado()) {
+                            for (Pedido pedido : pedidos) {
+                                if (pedido.getId() == ubicacion.getPedido().getId()) {
+                                    pedido.setEntregado(true);
+                                    pedido.setEntregadoCompleto(true);
+                                    pedidoService.guardar(pedido);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @PostMapping("/semanal")
     @ResponseBody
-    public ResponseEntity<List<Camion>> simulacionRutaSemanal(
+    public ResponseEntity<List<Camion>> ejecutarSemanal(
             @RequestParam(required = false) int anio,
             @RequestParam(required = false) int mes,
             @RequestParam(required = false) double timer,
@@ -153,7 +133,7 @@ public class GeneticoController {
         int hora = (((int) timer % 1440) / 60);
         int minuto = ((int) timer % 60);
 
-        averias(averias, timer);
+        gestionarAverias(averias, timer);
 
         if (primeraVezSemanal == 0) {
             pedidos = simulacionController.getPedidos();
@@ -172,33 +152,26 @@ public class GeneticoController {
 
     }
 
-    @GetMapping("/simulacionRuta/bloqueo")
+    @GetMapping("/bloqueos")
     @ResponseBody
     public ResponseEntity<List<Bloqueo>> obtenerBloqeos() {
         return ResponseEntity.ok(aco.getBloqueosActivos());
     }
 
-    @GetMapping("/simulacionRuta/pedido")
+    @GetMapping("/pedidos")
     @ResponseBody
-    public ResponseEntity<List<Pedido>> obtenerPedidosOriginales() {
+    public ResponseEntity<List<Pedido>> obtenerPedidosCompletos() {
         int i = 0;
-        for (Pedido pedido : aco.getOriginalPedidos()) {
+        for (Pedido pedido : aco.getPedidosCompletos()) {
             if (pedido.isEntregado()) {
                 i++;
             }
         }
-        System.out.println("Pedidos entregados: " + i + "/" + aco.getOriginalPedidos().size());
-        return ResponseEntity.ok(aco.getOriginalPedidos());
+        System.out.println("Pedidos entregados: " + i + "/" + aco.getPedidosCompletos().size());
+        return ResponseEntity.ok(aco.getPedidosCompletos());
     }
 
-    @GetMapping("/simulacionRuta/pedidoDividido")
-    @ResponseBody
-    public ResponseEntity<List<Pedido>> obtenerPedidosDivididos() {
-
-        return ResponseEntity.ok(aco.getPedidos());
-    }
-
-    @GetMapping("/simulacionRuta/almacen")
+    @GetMapping("/almacen")
     @ResponseBody
     public ResponseEntity<Object> obtenerAlmacenes() {
         if (this.aco == null) {
@@ -208,34 +181,20 @@ public class GeneticoController {
         return ResponseEntity.ok(aco.getMapa().getAlmacenes());
     }
 
-    @PostMapping("/simulacionRuta/reset")
+    @PostMapping("/reiniciar")
     @ResponseBody
-    public ResponseEntity<Object> reset() {
+    public ResponseEntity<Object> reiniciar() {
         try {
-            // Reset de camiones y pedidos
-            int camionesReseteados = resetearCamionesCompleto();
-            int pedidosActualizados = resetearPedidos();
-            limpiarListasMemoria();
+            limpiarCamiones();
+            limpiarPedidos();
+            this.pedidos = new ArrayList<>();
+            this.pedidosSimulacion = new ArrayList<>();
+            this.aco = null;
+            this.primeraVezDiaria = primeraVezSemanal = 0;
 
-            // Reset algoritmo y variables de control
-            aco = null;
-            primeraVezDiaria = primeraVezSemanal = 0;
-
-            // Construir respuesta simplificada
             Map<String, Object> response = Map.of(
                     "mensaje", "Reset completado",
-                    "detalles", Map.of(
-                            "camionesReseteados", camionesReseteados,
-                            "pedidosActualizados", pedidosActualizados,
-                            "listasLimpiadas", "pedidos, pedidosSimulacion",
-                            "variablesControl", "primeraVezDiaria, primeraVezSemanal"
-                    ),
-                    "estadoReset", "COMPLETO",
-                    "timestamp", LocalDateTime.now(),
-                    "tiempoInicial", "Día 2, 00:00:00",
-                    "timerRecomendado", 1440.0, // Día 2 para evitar bug día 0
-                    "resumen", String.format("Reseteados: %d camiones, %d pedidos",
-                            camionesReseteados, pedidosActualizados)
+                    "timestamp", LocalDateTime.now()
             );
 
 
@@ -251,18 +210,9 @@ public class GeneticoController {
         }
     }
 
-    /**
-     * Resetea completamente todos los camiones a su estado inicial
-     *
-     * @return número de camiones reseteados
-     */
-    private int resetearCamionesCompleto() {
-        int contador = 0;
-        if (camiones == null || camiones.isEmpty()) {
-            return contador; // No hay camiones para resetear
-        }
+    private void limpiarCamiones() {
+        if (camiones == null || camiones.isEmpty()) return;
         for (Camion camion : camiones) {
-            // Estado operativo - rutas y cargas
             if (camion.getRoute() != null) {
                 camion.getRoute().clear();
             } else {
@@ -273,10 +223,8 @@ public class GeneticoController {
             camion.setTiempoViaje(0);
             camion.setUbicacionActual(null);
             camion.setCapacidadCompleta(false);
-            camion.setGlpDisponible(camion.getCarga()); // Volver a capacidad original
+            camion.setGlpDisponible(camion.getCarga());
             camion.setCargaAnterior(0);
-
-            // Estado de averías - CRÍTICO para timer
             camion.setEnAveria(false);
             camion.setTipoAveria(0);
             camion.setTiempoInicioAveria(null);
@@ -284,60 +232,30 @@ public class GeneticoController {
             camion.setDetenido(false);
             camion.setTiempoDetenido(0);
 
-            // Pedidos asignados
-            if (camion.getPedidosAsignados() != null) {
+            if (camion.getPedidosAsignados() != null)
                 camion.getPedidosAsignados().clear();
-            } else {
+            else
                 camion.setPedidosAsignados(new ArrayList<>());
-            }
-
-            contador++;
         }
-        return contador;
     }
 
-    /**
-     * Resetea el estado de todos los pedidos en memoria y base de datos
-     *
-     * @return número de pedidos actualizados
-     */
-    private int resetearPedidos() {
-        int contador = 0;
+    private void limpiarPedidos() {
         if (pedidos != null) {
             for (Pedido pedido : pedidos) {
                 pedido.setEntregado(false);
                 pedido.setEntregadoCompleto(false);
-                pedidoService.guardar(pedido); // Persistir en BD
-                contador++;
+                pedidoService.guardar(pedido);
             }
         }
-        return contador;
     }
 
-    /**
-     * Limpia todas las listas en memoria para evitar memory leaks
-     */
-    private void limpiarListasMemoria() {
-        if (pedidos != null) {
-            pedidos.clear();
-        } else {
-            pedidos = new ArrayList<>();
-        }
-
-        if (pedidosSimulacion != null) {
-            pedidosSimulacion.clear();
-        } else {
-            pedidosSimulacion = new ArrayList<>();
-        }
-    }
-
-    public void averias(List<Averia> averias, double timer) {
+    public void gestionarAverias(List<Averia> averias, double momento) {
         for (Averia averia : averias) {
             for (Camion vehiculo : camiones) {
                 if (averia.getCodigoCamion().equals(vehiculo.getCodigo())) {
-                    int dia = ((int) timer / 1440);
+                    int dia = ((int) momento / 1440);
                     vehiculo.setEnAveria(true);
-                    vehiculo.setTiempoInicioAveria(timer);
+                    vehiculo.setTiempoInicioAveria(momento);
                     if (averia.getTipoAveria() == TipoIncidente.LEVE) {
 
                         vehiculo.setTipoAveria(1);
@@ -355,16 +273,13 @@ public class GeneticoController {
 
                             } else {
                                 if (averia.getTurnoAveria() == 2) {
-
                                     vehiculo.setTiempoFinAveria((double) (dia * 1440 + 1440));
-
                                 } else {
                                     if (averia.getTurnoAveria() == 3) {
                                         vehiculo.setTiempoFinAveria((double) (dia * 1440 + 1440 + 480));
                                     }
                                 }
                             }
-
                         } else {
                             if (averia.getTipoAveria() == TipoIncidente.GRAVE) {
                                 vehiculo.setDetenido(true);
@@ -374,7 +289,6 @@ public class GeneticoController {
                             } else if (averia.getTipoAveria() == TipoIncidente.MANTENIMIENTO) {
                                 vehiculo.setTipoAveria(4);
                                 vehiculo.setDetenido(true);
-                                // Mantenimiento: 1 día completo (1440 minutos)
                                 vehiculo.setTiempoDetenido(vehiculo.getTiempoInicioAveria());
                                 vehiculo.setTiempoFinAveria(vehiculo.getTiempoInicioAveria() + 1440);
                             }
@@ -390,43 +304,6 @@ public class GeneticoController {
     @ResponseBody
     public ResponseEntity<List<Camion>> getcamiones() {
         return ResponseEntity.ok(camiones);
-    }
-
-    // ENDPOINTS DE LOS REPORTES
-    @GetMapping("/reportes/eficiencia-camiones")
-    @ResponseBody
-    public ResponseEntity<Object> reporteEficienciaCamiones() {
-        if (this.aco == null) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Primero ejecuta una simulación ACO");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
-        }
-
-        Map<String, Object> reporte = new HashMap<>();
-        List<Map<String, Object>> estadisticasCamiones = new ArrayList<>();
-
-        for (Camion camion : camiones) {
-            Map<String, Object> stats = new HashMap<>();
-            stats.put("codigo", camion.getCodigo());
-            stats.put("tipo", camion.getCodigo().substring(0, 2));
-            stats.put("distanciaRecorrida", camion.getDistanciaRecorrida() != null ? camion.getDistanciaRecorrida() : 0.0);
-            stats.put("cargaAsignada", camion.getCargaAsignada());
-            stats.put("capacidadTotal", camion.getCarga());
-            stats.put("utilizacionCapacidad", (camion.getCargaAsignada() / camion.getCarga()) * 100);
-            stats.put("tiempoViaje", camion.getTiempoViaje());
-            stats.put("pedidosEnRuta", camion.getRoute() != null ? contarPedidosEnRuta(camion) : 0);
-            stats.put("consumoCombustible", calcularConsumoCombustible(camion));
-            stats.put("enAveria", camion.isEnAveria());
-            stats.put("tipoAveria", camion.getTipoAveria());
-
-            estadisticasCamiones.add(stats);
-        }
-
-        reporte.put("camiones", estadisticasCamiones);
-        reporte.put("totalCamiones", camiones.size());
-        reporte.put("timestamp", LocalDateTime.now());
-
-        return ResponseEntity.ok(reporte);
     }
 
     @GetMapping("/reportes/cumplimiento-entregas")
@@ -465,52 +342,6 @@ public class GeneticoController {
         return ResponseEntity.ok(reporte);
     }
 
-    @GetMapping("/reportes/utilizacion-flota")
-    @ResponseBody
-    public ResponseEntity<Object> reporteUtilizacionFlota() {
-        if (this.aco == null) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Primero ejecuta una simulación ACO");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
-        }
-
-        Map<String, Object> reporte = new HashMap<>();
-        Map<String, Object> estadisticasPorTipo = new HashMap<>();
-
-        // Agrupar por tipo de camión
-        Map<String, List<Camion>> camionsPorTipo = new HashMap<>();
-        for (Camion camion : camiones) {
-            String tipo = camion.getCodigo().substring(0, 2);
-            camionsPorTipo.computeIfAbsent(tipo, k -> new ArrayList<>()).add(camion);
-        }
-
-        for (Map.Entry<String, List<Camion>> entry : camionsPorTipo.entrySet()) {
-            String tipo = entry.getKey();
-            List<Camion> camionsTipo = entry.getValue();
-
-            Map<String, Object> stats = new HashMap<>();
-            stats.put("cantidadCamiones", camionsTipo.size());
-            stats.put("camionesActivos", camionsTipo.stream().mapToInt(c -> c.getRoute() != null && !c.getRoute().isEmpty() ? 1 : 0).sum());
-            stats.put("camionesEnAveria", camionsTipo.stream().mapToInt(c -> c.isEnAveria() ? 1 : 0).sum());
-            stats.put("capacidadTotal", camionsTipo.stream().mapToDouble(Camion::getCarga).sum());
-            stats.put("capacidadUtilizada", camionsTipo.stream().mapToDouble(Camion::getCargaAsignada).sum());
-            stats.put("porcentajeUtilizacion",
-                    camionsTipo.stream().mapToDouble(Camion::getCarga).sum() > 0 ?
-                            (camionsTipo.stream().mapToDouble(Camion::getCargaAsignada).sum() /
-                                    camionsTipo.stream().mapToDouble(Camion::getCarga).sum()) * 100 : 0);
-
-            estadisticasPorTipo.put(tipo, stats);
-        }
-
-        reporte.put("estadisticasPorTipo", estadisticasPorTipo);
-        reporte.put("totalFlota", camiones.size());
-        reporte.put("flotaActiva", camiones.stream().mapToInt(c -> c.getRoute() != null && !c.getRoute().isEmpty() ? 1 : 0).sum());
-        reporte.put("flotaEnAveria", camiones.stream().mapToInt(c -> c.isEnAveria() ? 1 : 0).sum());
-        reporte.put("timestamp", LocalDateTime.now());
-
-        return ResponseEntity.ok(reporte);
-    }
-
     @GetMapping("/reportes/incidentes")
     @ResponseBody
     public ResponseEntity<Object> reporteIncidentes() {
@@ -536,8 +367,6 @@ public class GeneticoController {
                 incidente.put("tiempoFinAveria", camion.getTiempoFinAveria());
                 incidente.put("detenido", camion.isDetenido());
                 incidente.put("tiempoDetenido", camion.getTiempoDetenido());
-
-                // Clasificar por tipo
                 switch (camion.getTipoAveria()) {
                     case 1:
                         averiasLeves++;
@@ -556,7 +385,6 @@ public class GeneticoController {
                 incidentes.add(incidente);
             }
         }
-
         reporte.put("incidentes", incidentes);
         reporte.put("totalIncidentes", incidentes.size());
         reporte.put("averiasLeves", averiasLeves);
@@ -568,74 +396,10 @@ public class GeneticoController {
         return ResponseEntity.ok(reporte);
     }
 
-    @GetMapping("/reportes/dashboard")
+    @GetMapping("/reportes/pedidoDividido")
     @ResponseBody
-    public ResponseEntity<Object> reporteDashboard() {
-        if (this.aco == null) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Primero ejecuta una simulación ACO");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
-        }
-
-        Map<String, Object> dashboard = new HashMap<>();
-
-        // KPIs principales
-        Map<String, Object> kpis = new HashMap<>();
-        kpis.put("totalCamiones", camiones.size());
-        kpis.put("camionesActivos", camiones.stream().mapToInt(c -> c.getRoute() != null && !c.getRoute().isEmpty() ? 1 : 0).sum());
-        kpis.put("camionesEnAveria", camiones.stream().mapToInt(c -> c.isEnAveria() ? 1 : 0).sum());
-
-        if (pedidos != null) {
-            kpis.put("totalPedidos", pedidos.size());
-            kpis.put("pedidosEntregados", pedidos.stream().mapToInt(p -> p.isEntregado() ? 1 : 0).sum());
-            kpis.put("porcentajeCumplimiento",
-                    pedidos.size() > 0 ? (double) pedidos.stream().mapToInt(p -> p.isEntregado() ? 1 : 0).sum() / pedidos.size() * 100 : 0);
-        }
-
-        // Capacidad total vs utilizada
-        double capacidadTotal = camiones.stream().mapToDouble(Camion::getCarga).sum();
-        double capacidadUtilizada = camiones.stream().mapToDouble(Camion::getCargaAsignada).sum();
-        kpis.put("capacidadTotal", capacidadTotal);
-        kpis.put("capacidadUtilizada", capacidadUtilizada);
-        kpis.put("porcentajeUtilizacionFlota", capacidadTotal > 0 ? (capacidadUtilizada / capacidadTotal) * 100 : 0);
-
-        // Consumo total estimado
-        double consumoTotal = camiones.stream().mapToDouble(this::calcularConsumoCombustible).sum();
-        kpis.put("consumoTotalCombustible", consumoTotal);
-
-        dashboard.put("kpis", kpis);
-        dashboard.put("ultimaActualizacion", LocalDateTime.now());
-        dashboard.put("estadoSimulacion", "ACTIVA");
-
-        // Alertas
-        List<String> alertas = new ArrayList<>();
-        if (camiones.stream().anyMatch(Camion::isEnAveria)) {
-            alertas.add("⚠️ Camiones con averías detectadas");
-        }
-        if (capacidadTotal > 0 && (capacidadUtilizada / capacidadTotal) > 0.9) {
-            alertas.add("🚨 Utilización de flota superior al 90%");
-        }
-        if (pedidos != null && pedidos.stream().anyMatch(p -> !p.isEntregado())) {
-            alertas.add("📦 Pedidos pendientes de entrega");
-        }
-
-        dashboard.put("alertas", alertas);
-
-        return ResponseEntity.ok(dashboard);
-    }
-
-    // Métodos auxiliares para los reportes
-    private int contarPedidosEnRuta(Camion camion) {
-        if (camion.getRoute() == null) return 0;
-        return (int) camion.getRoute().stream().filter(node -> node.isEsPedido()).count();
-    }
-
-    private double calcularConsumoCombustible(Camion camion) {
-        if (camion.getDistanciaRecorrida() == null || camion.getDistanciaRecorrida() == 0) {
-            return 0.0;
-        }
-        // Fórmula: Consumo = Distancia(Km) x Peso(Ton) / 180
-        return camion.getDistanciaRecorrida() * camion.getPeso() / 180;
+    public ResponseEntity<List<Pedido>> obtenerPedidosDivididos() {
+        return ResponseEntity.ok(aco.getPedidos());
     }
 
     private String calcularImpactoOperativo() {
@@ -645,5 +409,4 @@ public class GeneticoController {
         if (camionesEnAveria <= 5) return "MODERADO";
         return "ALTO";
     }
-
 }
