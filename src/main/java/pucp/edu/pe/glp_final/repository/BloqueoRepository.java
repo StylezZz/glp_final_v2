@@ -13,7 +13,7 @@ public interface BloqueoRepository extends JpaRepository<Bloqueo, Integer> {
     @Query("SELECT DISTINCT b FROM Bloqueo b LEFT JOIN FETCH b.tramo WHERE b.anio = :anio AND b.mes = :mes")
     List<Bloqueo> findByAnioAndMesWithTramos(@Param("anio") int anio, @Param("mes") int mes);
 
-    @Query("SELECT DISTINCT CONCAT('Pedidos de ', CASE b.mes " +
+    @Query("SELECT DISTINCT CONCAT('Pedidos de ', CASE sub.mes " +
             "WHEN 1 THEN 'enero' " +
             "WHEN 2 THEN 'febrero' " +
             "WHEN 3 THEN 'marzo' " +
@@ -26,7 +26,8 @@ public interface BloqueoRepository extends JpaRepository<Bloqueo, Integer> {
             "WHEN 10 THEN 'octubre' " +
             "WHEN 11 THEN 'noviembre' " +
             "WHEN 12 THEN 'diciembre' " +
-            "ELSE 'mes_desconocido' END, ' ', CAST(b.anio AS string))" +
-            "FROM Bloqueo b ORDER BY b.anio DESC, b.mes DESC")
+            "ELSE 'mes_desconocido' END, ' ', CAST(sub.anio AS string))" +
+            "FROM (SELECT DISTINCT b.anio, b.mes FROM Bloqueo b) sub " +
+            "ORDER BY sub.anio DESC, sub.mes DESC")
     List<String> getMesesBloqueo();
 }
