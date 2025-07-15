@@ -63,7 +63,7 @@ public class Genetico {
         calendar.set(Calendar.HOUR_OF_DAY, hora);
         calendar.set(Calendar.MINUTE, minuto);
 
-        bloqueosActivos = Bloqueo.bloqueosActivos(bloqueos, calendar);
+        bloqueosActivos = Bloqueo.obtenerBloqueosActivos(bloqueos, calendar);
         ejecutar(anio, mes, dia, hora, minuto, bloqueos, primeraVez, momento, tipoSimulacion);
         validarTiempoRuta(anio, mes, dia, hora, minuto, minutosPorIteracion, tipoSimulacion);
 

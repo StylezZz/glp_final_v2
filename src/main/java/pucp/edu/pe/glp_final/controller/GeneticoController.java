@@ -36,8 +36,8 @@ public class GeneticoController {
     private List<Camion> camiones;
     private List<Pedido> pedidos = new ArrayList<>();
     private List<Pedido> pedidosSimulacion = new ArrayList<>();
-    private int primeraVezDiaria = 0;
-    private int primeraVezSemanal = 0;
+    private int primeraEjecucionDia = 0;
+    private int primeraEjecucionSemanal = 0;
 
     @Autowired
     private PedidoService pedidoService;
@@ -76,7 +76,7 @@ public class GeneticoController {
 
         gestionarAverias(averias, timer);
         gestionarPedidos(anio, mes, timer, minutosPorIteracion, dia, hora, minuto);
-        primeraVezDiaria = 1;
+        primeraEjecucionDia = 1;
         return ResponseEntity.ok(aco.getCamiones());
 
     }
@@ -96,7 +96,7 @@ public class GeneticoController {
                 pedidosSimulacion,
                 new ArrayList<>(),
                 pedidos,
-                primeraVezDiaria,
+                primeraEjecucionDia,
                 timer,
                 1
         );
@@ -132,22 +132,21 @@ public class GeneticoController {
         int dia = ((int) timer / 1440);
         int hora = (((int) timer % 1440) / 60);
         int minuto = ((int) timer % 60);
-
         gestionarAverias(averias, timer);
 
-        if (primeraVezSemanal == 0) {
+        if (primeraEjecucionSemanal == 0) {
             pedidos = simulacionController.getPedidos();
             pedidosSimulacion = pedidoService.dividirPedidos(pedidos, 2);
             List<Bloqueo> bloqueos = simulacionController.getBloqueos();
             aco.simulacionRuteo(anio, mes, dia, hora, minuto, minutosPorIteracion, pedidosSimulacion, bloqueos,
-                    pedidos, primeraVezSemanal, timer, 2);
+                    pedidos, primeraEjecucionSemanal, timer, 2);
         } else {
             List<Bloqueo> bloqueos = simulacionController.getBloqueos();
             aco.simulacionRuteo(anio, mes, dia, hora, minuto, minutosPorIteracion, pedidosSimulacion, bloqueos,
-                    pedidos, primeraVezSemanal, timer, 2);
+                    pedidos, primeraEjecucionSemanal, timer, 2);
         }
 
-        primeraVezSemanal = 1;
+        primeraEjecucionSemanal = 1;
         return ResponseEntity.ok(aco.getCamiones());
 
     }
@@ -190,7 +189,7 @@ public class GeneticoController {
             this.pedidos = new ArrayList<>();
             this.pedidosSimulacion = new ArrayList<>();
             this.aco = null;
-            this.primeraVezDiaria = primeraVezSemanal = 0;
+            this.primeraEjecucionDia = primeraEjecucionSemanal = 0;
 
             Map<String, Object> response = Map.of(
                     "mensaje", "Reset completado",

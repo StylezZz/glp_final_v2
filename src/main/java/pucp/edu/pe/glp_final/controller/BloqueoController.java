@@ -44,7 +44,7 @@ public class BloqueoController {
     public ResponseEntity<Object> uploadFile(@RequestParam("file") MultipartFile file) {
         Map<String, Object> response = new HashMap<>();
         try {
-            List<Bloqueo> bloqueos = bloqueoService.saveBloqueoArchivo(file);
+            List<Bloqueo> bloqueos = bloqueoService.cargarArchivo(file);
             response.put("mensaje", "Se procesaron " + bloqueos.size() + " bloqueos correctamente");
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (Exception e) {

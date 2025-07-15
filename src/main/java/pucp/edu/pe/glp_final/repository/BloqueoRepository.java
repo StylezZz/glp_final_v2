@@ -27,6 +27,6 @@ public interface BloqueoRepository extends JpaRepository<Bloqueo, Integer> {
             "WHEN 11 THEN 'noviembre' " +
             "WHEN 12 THEN 'diciembre' " +
             "ELSE 'mes_desconocido' END, ' ', CAST(b.anio AS string))" +
-            "FROM Bloqueo b")
+            "FROM Bloqueo b ORDER BY b.anio DESC, b.mes DESC")
     List<String> getMesesBloqueo();
 }

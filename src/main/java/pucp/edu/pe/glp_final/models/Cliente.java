@@ -1,12 +1,11 @@
 package pucp.edu.pe.glp_final.models;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
-import pucp.edu.pe.glp_final.models.enums.TipoCliente;
+import jakarta.persistence.*;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.List;
 
@@ -23,10 +22,6 @@ public class Cliente {
 
     private String nombre;
     private String correo;
-    private Integer telefono;
-
-    @Enumerated(EnumType.STRING)
-    private TipoCliente tipo;
 
     @JsonIgnore
     @OneToMany(mappedBy = "cliente")

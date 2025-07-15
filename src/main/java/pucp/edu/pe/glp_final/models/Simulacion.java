@@ -1,8 +1,8 @@
 package pucp.edu.pe.glp_final.models;
 
-import java.time.LocalDateTime;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.time.LocalDateTime;
 
 import lombok.Getter;
 import lombok.Setter;

@@ -82,7 +82,6 @@ public class PlanificadorRuta {
                 }
             }
         }
-        return;
     }
 
     private void reconstruirCamino(NodoMapa objetivo, Camion vehiculo, Pedido pedido, int anio,
@@ -141,8 +140,15 @@ public class PlanificadorRuta {
         return Math.sqrt(Math.pow(hasta.getX() - desde.getX(), 2) + Math.pow(hasta.getY() - desde.getY(), 2));
     }
 
-    public List<NodoMapa> obtenerNodosVecinos(NodoMapa posicionActual, List<Bloqueo> bloqueos, int anio,
-                                              int mes, Mapa gridGraph, NodoMapa objetivo, Pedido pedido) {
+    public List<NodoMapa> obtenerNodosVecinos(
+            NodoMapa posicionActual,
+            List<Bloqueo> bloqueos,
+            int anio,
+            int mes,
+            Mapa mapa,
+            NodoMapa objetivo,
+            Pedido pedido
+    ) {
         List<NodoMapa> vecinos = new ArrayList<>();
         int x = posicionActual.getX();
         int y = posicionActual.getY();
@@ -150,24 +156,24 @@ public class PlanificadorRuta {
 
         Calendar calendar = Calendar.getInstance();
         calendar.set(Calendar.YEAR, anio);
-        calendar.set(Calendar.MONTH, mes - 1); // Nota: El mes es 0-based (enero es 0)
+        calendar.set(Calendar.MONTH, mes - 1);
         calendar.set(Calendar.DAY_OF_MONTH, (int) arriveTime / 1440);
         calendar.set(Calendar.HOUR_OF_DAY, (int) (arriveTime % 1440) / 60);
         calendar.set(Calendar.MINUTE, (int) arriveTime % 60);
 
-        List<Bloqueo> bloqueoFuturo = Bloqueo.bloqueosActivos(bloqueos, calendar);
+        List<Bloqueo> bloqueoFuturo = Bloqueo.obtenerBloqueosActivos(bloqueos, calendar);
         List<Nodo> nodosBloqueados = Bloqueo.NodosBloqueados(bloqueoFuturo);
         if (x > 0 && x <= 70) {
-            vecinos.add(gridGraph.getMapa()[x - 1][y]);
+            vecinos.add(mapa.getMapa()[x - 1][y]);
         }
         if (x >= 0 && x < 70) {
-            vecinos.add(gridGraph.getMapa()[x + 1][y]);
+            vecinos.add(mapa.getMapa()[x + 1][y]);
         }
         if (y > 0 && y <= 50) {
-            vecinos.add(gridGraph.getMapa()[x][y - 1]);
+            vecinos.add(mapa.getMapa()[x][y - 1]);
         }
         if (y >= 0 && y < 50) {
-            vecinos.add(gridGraph.getMapa()[x][y + 1]);
+            vecinos.add(mapa.getMapa()[x][y + 1]);
         }
 
         List<NodoMapa> vecinosItera = new ArrayList<>(vecinos);

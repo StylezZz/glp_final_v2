@@ -41,6 +41,6 @@ public interface PedidoRepository extends JpaRepository<Pedido, Integer> {
             "WHEN 11 THEN 'noviembre' " +
             "WHEN 12 THEN 'diciembre' " +
             "ELSE 'mes_desconocido' END, ' ', CAST(p.anio AS string))" +
-            "FROM Pedido p")
+            "FROM Pedido p ORDER BY p.anio DESC, p.mesPedido DESC")
     List<String> getMesesPedido();
 }

@@ -75,7 +75,7 @@ public class PedidoController {
     @ResponseBody
     public ResponseEntity<Object> uploadFile(@RequestParam("file") MultipartFile file) {
         try {
-            List<Pedido> pedidos = pedidoService.savePedidosArchivo(file);
+            List<Pedido> pedidos = pedidoService.cargarArchivo(file);
             Map<String, String> response = new HashMap<>();
             response.put("mensaje", "Se subió el archivo y se procesaron " + pedidos.size() + " pedidos correctamente");
             return ResponseEntity.status(HttpStatus.OK).body(response);

@@ -1,21 +1,16 @@
 package pucp.edu.pe.glp_final.models;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
-import java.util.regex.Pattern;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -49,38 +44,34 @@ public class Bloqueo {
         nodoBloqueo.setBloqueo(this);
     }
 
-    public static Bloqueo leerBloqueo(String registro, int anio, int mes) {
+    public static Bloqueo leerRegistro(String registro, int anio, int mes) {
         Bloqueo bloqueo = new Bloqueo();
-        bloqueo.anio = anio;
-        bloqueo.mes = mes;
+        bloqueo.setAnio(anio);
+        bloqueo.setMes(mes);
 
-        String[] partes = registro.split(":");
-        if (partes.length != 2) {
-            throw new IllegalArgumentException("Formato de entrada incorrecto");
-        }
+        String[] divsionesTiempo = registro.split(":");
+        if (divsionesTiempo.length != 2)
+            throw new IllegalArgumentException("Registro mal formado");
 
-        String[] momentoInicioFin = partes[0].split("-");
-        if (momentoInicioFin.length != 2) {
-            throw new IllegalArgumentException("Formato de inicio/fin incorrecto");
-        }
+        String[] limitesTiempo = divsionesTiempo[0].split("-");
+        if (limitesTiempo.length != 2)
+            throw new IllegalArgumentException("Fechas límite incorrectas");
 
-        String[] partesInicio = momentoInicioFin[0].split("[dhm]");
-        if (partesInicio.length != 3) {
-            throw new IllegalArgumentException("Formato de momento incorrecto");
-        }
+        String[] inicio = limitesTiempo[0].split("[dhm]");
+        if (inicio.length != 3)
+            throw new IllegalArgumentException("Fecha inicio mal formada");
 
-        bloqueo.setDiaInicio(Integer.parseInt(partesInicio[0].replace("d", "")));
-        bloqueo.setHoraInicio(Integer.parseInt(partesInicio[1].replace("h", "")));
-        bloqueo.setMinutoInicio(Integer.parseInt(partesInicio[2].replace("m", "")));
+        bloqueo.setDiaInicio(Integer.parseInt(inicio[0].replace("d", "")));
+        bloqueo.setHoraInicio(Integer.parseInt(inicio[1].replace("h", "")));
+        bloqueo.setMinutoInicio(Integer.parseInt(inicio[2].replace("m", "")));
 
-        String[] partesFin = momentoInicioFin[1].split("[dhm]");
-        if (partesFin.length != 3) {
-            throw new IllegalArgumentException("Formato de momento incorrecto");
-        }
+        String[] fin = limitesTiempo[1].split("[dhm]");
+        if (fin.length != 3)
+            throw new IllegalArgumentException("Fecha fin mal formada");
 
-        bloqueo.setDiaFin(Integer.parseInt(partesFin[0].replace("d", "")));
-        bloqueo.setHoraFin(Integer.parseInt(partesFin[1].replace("h", "")));
-        bloqueo.setMinutoFin(Integer.parseInt(partesFin[2].replace("m", "")));
+        bloqueo.setDiaFin(Integer.parseInt(fin[0].replace("d", "")));
+        bloqueo.setHoraFin(Integer.parseInt(fin[1].replace("h", "")));
+        bloqueo.setMinutoFin(Integer.parseInt(fin[2].replace("m", "")));
 
         LocalDateTime fechaInicio = LocalDateTime.of(anio, mes, bloqueo.getDiaInicio(),
                 bloqueo.getHoraInicio(), bloqueo.getMinutoInicio());
@@ -89,10 +80,9 @@ public class Bloqueo {
         bloqueo.setFechaInicio(fechaInicio);
         bloqueo.setFechaFin(fechaFin);
 
-        String[] coordenadas = partes[1].split(",");
-        if (coordenadas.length % 2 != 0) {
-            throw new IllegalArgumentException("Formato de coordenadas incorrecto");
-        }
+        String[] coordenadas = divsionesTiempo[1].split(",");
+        if (coordenadas.length % 2 != 0)
+            throw new IllegalArgumentException("Coordenadas mal formadas");
 
         for (int i = 0; i < coordenadas.length - 2; i += 2) {
             TramoBloqueado tramo = TramoBloqueado.builder()
@@ -103,37 +93,39 @@ public class Bloqueo {
                     .build();
             bloqueo.addTramo(tramo);
         }
-
         return bloqueo;
     }
 
-    public boolean estaActivo(Calendar ahora) {
-        int anioActual = ahora.get(Calendar.YEAR);
-        int mesActual = ahora.get(Calendar.MONTH) + 1;
-        int diaActual = ahora.get(Calendar.DAY_OF_MONTH);
-        int horaActual = ahora.get(Calendar.HOUR_OF_DAY);
-        int minutoActual = ahora.get(Calendar.MINUTE);
-        if (
-                (anioActual > anio || (anioActual == anio && mesActual > mes))
-                        || (anioActual < anio || mesActual < mes || diaActual < diaInicio)
-                        || (diaActual == diaInicio && horaActual < horaInicio)
-                        || (diaActual == diaInicio && horaActual == horaInicio && minutoActual < minutoInicio)
-                        || (diaActual == diaInicio && horaActual == horaInicio &&
-                        (diaActual > diaFin || horaActual > horaFin || (horaActual == horaFin && minutoActual >= minutoFin))
-                )
-        )
-            return false;
-
-        return true;
-    }
-
-    public static List<Bloqueo> bloqueosActivos(List<Bloqueo> bloqueos, Calendar ahora) {
+    public static List<Bloqueo> obtenerBloqueosActivos(
+            List<Bloqueo> bloqueos,
+            Calendar momento
+    ) {
         List<Bloqueo> bloqueosActivos = new ArrayList<>();
         for (Bloqueo bloqueo : bloqueos)
-            if (bloqueo.estaActivo(ahora))
+            if (bloqueo.activo(momento))
                 bloqueosActivos.add(bloqueo);
         return bloqueosActivos;
     }
+
+    public boolean activo(Calendar momento) {
+        int anio = momento.get(Calendar.YEAR);
+        int mes = momento.get(Calendar.MONTH) + 1;
+        int dia = momento.get(Calendar.DAY_OF_MONTH);
+        int hora = momento.get(Calendar.HOUR_OF_DAY);
+        int min = momento.get(Calendar.MINUTE);
+        if (
+                (anio > this.anio || (anio == this.anio && mes > this.mes))
+                        || (anio < this.anio || mes < this.mes || dia < diaInicio)
+                        || (dia == diaInicio && hora < horaInicio)
+                        || (dia == diaInicio && hora == horaInicio && min < minutoInicio)
+                        || (dia == diaInicio && hora == horaInicio &&
+                        (dia > diaFin || hora > horaFin || (hora == horaFin && min >= minutoFin))
+                )
+        )
+            return false;
+        return true;
+    }
+
 
     public static List<Nodo> NodosBloqueados(List<Bloqueo> bloqueos) {
         List<Nodo> nodosBloqueados = new ArrayList<>();
@@ -164,9 +156,7 @@ public class Bloqueo {
                         }
                     }
                 }
-
             }
-
         }
 
         return nodosBloqueados;
