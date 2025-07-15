@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.util.ArrayList;
 import java.util.List;
 
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -16,12 +17,12 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class PedidoService {
 
     private List<Pedido> pedidosCarga;
-    private int id = 0;
 
     @Autowired
     private PedidoRepository pedidoRepository;
@@ -47,6 +48,16 @@ public class PedidoService {
 
     public List<String> getMesesPedido() {
         return pedidoRepository.getMesesPedido();
+    }
+
+    @Transactional
+    public void reiniciarPedidos(List<Pedido> pedidos) {
+        if (pedidos != null && !pedidos.isEmpty()) {
+            List<Integer> ids = pedidos.stream()
+                    .map(Pedido::getId)
+                    .collect(Collectors.toList());
+            pedidoRepository.reiniciarPedidosPorIds(ids);
+        }
     }
 
     public List<Pedido> findByFechaPedidoBetween(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
@@ -78,7 +89,6 @@ public class PedidoService {
             while ((registro = reader.readLine()) != null && !registro.isBlank()) {
                 Pedido pedido = Pedido.leerRegistro(registro, Integer.parseInt(anio), Integer.parseInt(mes), 0);
 
-                //La cagamos si no hay cliente ps, piensa ps chaNCHO
                 Optional<Cliente> clienteOptional = clientRepository.findById(pedido.getIdCliente());
                 Cliente cliente;
                 if (!clienteOptional.isPresent()) {
@@ -118,7 +128,7 @@ public class PedidoService {
             for (Pedido pedido : pedidos) {
                 int demanda = pedido.getCantidadGLP();
                 while (demanda > 25) {
-                    int cantidad = Math.min(demanda, 5); // Divide en pedidos de 5 o menos
+                    int cantidad = Math.min(demanda, 5);
                     Pedido pedido1 = new Pedido(pedido.getDia(), pedido.getHora(), pedido.getMinuto(),
                             pedido.getAnio(),
                             pedido.getMesPedido(), pedido.getPosX(), pedido.getPosY(), pedido.getIdCliente(), cantidad,

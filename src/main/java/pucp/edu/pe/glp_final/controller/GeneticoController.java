@@ -195,8 +195,6 @@ public class GeneticoController {
                     "mensaje", "Reset completado",
                     "timestamp", LocalDateTime.now()
             );
-
-
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
@@ -211,40 +209,18 @@ public class GeneticoController {
 
     private void limpiarCamiones() {
         if (camiones == null || camiones.isEmpty()) return;
-        for (Camion camion : camiones) {
-            if (camion.getRoute() != null) {
-                camion.getRoute().clear();
-            } else {
-                camion.crearRuta();
-            }
-            camion.setCargaAsignada(0);
-            camion.setDistanciaRecorrida(0.0);
-            camion.setTiempoViaje(0);
-            camion.setUbicacionActual(null);
-            camion.setCapacidadCompleta(false);
-            camion.setGlpDisponible(camion.getCarga());
-            camion.setCargaAnterior(0);
-            camion.setEnAveria(false);
-            camion.setTipoAveria(0);
-            camion.setTiempoInicioAveria(null);
-            camion.setTiempoFinAveria(null);
-            camion.setDetenido(false);
-            camion.setTiempoDetenido(0);
-
-            if (camion.getPedidosAsignados() != null)
-                camion.getPedidosAsignados().clear();
-            else
-                camion.setPedidosAsignados(new ArrayList<>());
-        }
+        camiones.forEach(Camion::reiniciar);
     }
 
     private void limpiarPedidos() {
-        if (pedidos != null) {
-            for (Pedido pedido : pedidos) {
+        if (pedidos != null && !pedidos.isEmpty()) {
+            pedidoService.reiniciarPedidos(pedidos);
+
+            // Actualizar objetos en memoria también
+            pedidos.forEach(pedido -> {
                 pedido.setEntregado(false);
                 pedido.setEntregadoCompleto(false);
-                pedidoService.guardar(pedido);
-            }
+            });
         }
     }
 

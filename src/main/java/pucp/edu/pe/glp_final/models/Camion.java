@@ -96,4 +96,35 @@ public class Camion {
         route.add(node);
     }
 
+    public void reiniciar() {
+        // Reiniciar ruta
+        if (this.route != null) this.route.clear();
+        else this.crearRuta();
+
+        // Reiniciar valores numéricos
+        this.cargaAsignada = 0;
+        this.distanciaRecorrida = 0.0;
+        this.tiempoViaje = 0;
+        this.tipoAveria = 0;
+        this.tiempoDetenido = 0;
+
+        // Reiniciar booleanos
+        this.capacidadCompleta = false;
+        this.enAveria = false;
+        this.detenido = false;
+
+        // Reiniciar referencias
+        this.ubicacionActual = null;
+        this.tiempoInicioAveria = null;
+        this.tiempoFinAveria = null;
+
+        // Restablecer valores derivados
+        this.glpDisponible = this.carga;
+        this.cargaAnterior = 0;
+
+        // Reiniciar pedidos
+        if (this.pedidosAsignados != null) this.pedidosAsignados.clear();
+        else this.pedidosAsignados = new ArrayList<>();
+    }
+
 }
