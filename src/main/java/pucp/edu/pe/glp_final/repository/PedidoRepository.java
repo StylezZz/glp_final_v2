@@ -27,7 +27,7 @@ public interface PedidoRepository extends JpaRepository<Pedido, Integer> {
             @Param("fechaFin") LocalDateTime fechaFin
     );
 
-    @Query("SELECT DISTINCT CONCAT('Pedidos de ', CASE sub.mesPedido " +
+    @Query("SELECT DISTINCT CONCAT('Pedidos de ', CASE p.mesPedido " +
             "WHEN 1 THEN 'enero' " +
             "WHEN 2 THEN 'febrero' " +
             "WHEN 3 THEN 'marzo' " +
@@ -40,8 +40,7 @@ public interface PedidoRepository extends JpaRepository<Pedido, Integer> {
             "WHEN 10 THEN 'octubre' " +
             "WHEN 11 THEN 'noviembre' " +
             "WHEN 12 THEN 'diciembre' " +
-            "ELSE 'mes_desconocido' END, ' ', CAST(sub.anio AS string))" +
-            "FROM (SELECT DISTINCT p.anio, p.mesPedido FROM Pedido p) sub " +
-            "ORDER BY sub.anio DESC, sub.mesPedido DESC")
+            "ELSE 'mes_desconocido' END, ' ', CAST(p.anio AS string))" +
+            "FROM Pedido p")
     List<String> getMesesPedido();
 }
