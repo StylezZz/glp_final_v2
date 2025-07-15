@@ -61,7 +61,7 @@ public class GeneticoController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/dia-dia")
+    @PostMapping("/dia")
     @ResponseBody
     public ResponseEntity<List<Camion>> ejecutarDia(
             @RequestParam(required = false) int anio,
