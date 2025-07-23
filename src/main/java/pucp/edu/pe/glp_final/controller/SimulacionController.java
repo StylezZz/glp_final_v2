@@ -7,18 +7,15 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.RestController;
-
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.http.ResponseEntity;
 
 import pucp.edu.pe.glp_final.service.SimulacionService;
-import pucp.edu.pe.glp_final.service.FileStorageService;
 import pucp.edu.pe.glp_final.service.BloqueoService;
 import pucp.edu.pe.glp_final.service.PedidoService;
 import pucp.edu.pe.glp_final.models.Bloqueo;
@@ -30,16 +27,13 @@ import lombok.Setter;
 @Setter
 @RestController
 @RequestMapping("/api/simulacion")
-public class SimulacionBloqueoController {
+public class SimulacionController {
 
     private List<Bloqueo> bloqueos;
     private List<Pedido> pedidos;
 
     @Autowired
     private SimulacionService simulacionService;
-
-    @Autowired
-    private FileStorageService fileStorageService;
 
     @Autowired
     private PedidoService pedidoService;
@@ -79,37 +73,6 @@ public class SimulacionBloqueoController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/establecervelocidad")
-    public ResponseEntity<String> establecerVelocidad(
-            @RequestParam int minutosPorIteracion
-    ) {
-        simulacionService.configurarVelocidad(minutosPorIteracion);
-        return ResponseEntity.ok("Velocidad establecida a " + minutosPorIteracion + " minutos por iteración.");
-    }
-
-    @GetMapping("/obtenervelocidad")
-    public ResponseEntity<Integer> obtenerVelocidad() {
-        int velocidad = simulacionService.obtenerVelocidad();
-        return ResponseEntity.ok(velocidad);
-    }
-
-    @GetMapping("/tiempo-actual")
-    public ResponseEntity<Map<String, Object>> obtenerTiempoActual() {
-        if (simulacionService == null || simulacionService.getSimulacion() == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
-        }
-
-        Map<String, Object> tiempoActual = new HashMap<>();
-        tiempoActual.put("horaActual", simulacionService.getSimulacion().getHoraActual());
-        tiempoActual.put("minutoActual", simulacionService.getSimulacion().getMinutoActual());
-        tiempoActual.put("diaActual", simulacionService.getSimulacion().getDiaActual());
-        tiempoActual.put("mesActual", simulacionService.getSimulacion().getMesActual());
-        tiempoActual.put("anioActual", simulacionService.getSimulacion().getAnioActual());
-        tiempoActual.put("timer", simulacionService.getSimulacion().getTimerSimulacion());
-
-        return ResponseEntity.ok(tiempoActual);
-    }
-
     @GetMapping("/pedidos/semanal")
     @ResponseBody
     public ResponseEntity<List<Pedido>> obtenerPedidosSemanal(
@@ -138,6 +101,7 @@ public class SimulacionBloqueoController {
     ) {
         List<Bloqueo> bloqueosMes = bloqueoService.obtenerBloqueosPorAnioMes(anio, mes);
         bloqueos = bloqueoService.getBloqueosSemanal(bloqueosMes, dia, mes, anio, hora, minuto);
+
         return ResponseEntity.ok(this.bloqueos);
     }
 
@@ -152,7 +116,6 @@ public class SimulacionBloqueoController {
         LocalDateTime fechaInicio = LocalDateTime.of(anio, mes, dia, hora, minuto);
         LocalDateTime fechaFin = fechaInicio.plusHours(24);
         this.pedidos = new ArrayList<>();
-
         this.pedidos = pedidoService.findByFechaPedidoBetween(fechaInicio, fechaFin);
 
         return ResponseEntity.ok(this.pedidos);

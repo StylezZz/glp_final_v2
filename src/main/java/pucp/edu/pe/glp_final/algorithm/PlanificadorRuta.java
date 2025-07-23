@@ -9,9 +9,17 @@ import java.util.*;
 
 public class PlanificadorRuta {
 
-    public void encontrarCamino(Mapa gridGraph, NodoMapa nodoInicial, NodoMapa objetivo,
-                                List<Bloqueo> bloqueos, int anio, int mes, Camion vehiculo, Pedido pedido,
-                                boolean inicio, int tipoSimulacion) {
+    public void encontrarCamino(
+            Mapa gridGraph,
+            NodoMapa nodoInicial,
+            NodoMapa objetivo,
+            List<Bloqueo> bloqueos,
+            int anio,
+            int mes,
+            Camion vehiculo,
+            Pedido pedido,
+            int tipoSimulacion
+    ) {
         PriorityQueue<NodoMapa> colaPrioridad = new PriorityQueue<>(
                 Comparator.comparingDouble(n -> n.getCostoTotal()));
         Map<NodoMapa, Double> costoRealAcumulado = new HashMap<>();
@@ -24,13 +32,10 @@ public class PlanificadorRuta {
             NodoMapa actual = colaPrioridad.poll();
 
             if (actual.getX() == objetivo.getX() && actual.getY() == objetivo.getY()) {
-                // Se encontró el camino, reconstruir y devolver
-
                 if (pedido != null && actual.getPedido() == pedido) {
                     actual.setPedido(pedido);
                     actual.getPedido().setEntregado(true);
                     reconstruirCamino(actual, vehiculo, pedido, anio, mes, tipoSimulacion);
-
                     break;
                 }
                 reconstruirCamino(actual, vehiculo, pedido, anio, mes, tipoSimulacion);
@@ -47,7 +52,7 @@ public class PlanificadorRuta {
                     }
                     nodoAnterior.setAnio(anio);
                     nodoAnterior.setMes(mes);
-                    vehiculo.asignarPosicion(nodoAnterior);
+                    vehiculo.posicionar(nodoAnterior);
 
                     pedido.setIsbloqueo(false);
                 }
@@ -62,10 +67,7 @@ public class PlanificadorRuta {
             }
             for (NodoMapa vecino : obtenerNodosVecinos(actual, bloqueos, anio, mes, gridGraph, objetivo, pedido)) {
 
-                if (nodosVisitados.contains(vecino)) {
-                    continue; // Nodo ya visitado o bloqueado
-                }
-
+                if (nodosVisitados.contains(vecino)) continue;
                 double nuevoCosto = costoRealAcumulado.get(actual) + calcularHeuristica(actual, vecino);
 
                 if (!costoRealAcumulado.containsKey(vecino) || nuevoCosto < costoRealAcumulado.get(vecino)) {
@@ -80,8 +82,6 @@ public class PlanificadorRuta {
                 }
             }
         }
-
-        // No se encontró un camino
         return;
     }
 
@@ -101,7 +101,7 @@ public class PlanificadorRuta {
 
             if (pedido != null) {
                 if (pedido.getPosX() == caminoVehiculo.getX() && pedido.getPosY() == caminoVehiculo.getY()) {
-                    vehiculo.asignarPedido(pedido);
+                    vehiculo.asignar(pedido);
                     NodoMapa ruta = new NodoMapa(caminoVehiculo.getId(), caminoVehiculo.getX(),
                             caminoVehiculo.getY(),
                             caminoVehiculo.isEsAlmacen());
@@ -110,9 +110,9 @@ public class PlanificadorRuta {
                         ruta.setTiempoFin(caminoVehiculo.getTiempoInicio());
                     } else {
                         ruta.setTiempoInicio(caminoVehiculo.getTiempoInicio());
-                        if(tipoSimulacion == 1){
+                        if (tipoSimulacion == 1) {
                             ruta.setTiempoFin(caminoVehiculo.getTiempoInicio() + 1);
-                        }else{
+                        } else {
                             ruta.setTiempoFin(caminoVehiculo.getTiempoInicio() + 1.2);
                         }
                     }
@@ -120,7 +120,7 @@ public class PlanificadorRuta {
                     ruta.setEsPedido(true);
                     ruta.setAnio(anio);
                     ruta.setMes(mes);
-                    vehiculo.asignarPosicion(ruta);
+                    vehiculo.posicionar(ruta);
                     break;
                 }
             }
@@ -132,13 +132,12 @@ public class PlanificadorRuta {
             ruta.setTiempoInicio(caminoVehiculo.getTiempoInicio());
             ruta.setAnio(anio);
             ruta.setMes(mes);
-            vehiculo.asignarPosicion(ruta);
+            vehiculo.posicionar(ruta);
             i++;
         }
     }
 
     private double calcularHeuristica(NodoMapa desde, NodoMapa hasta) {
-        // Puedes usar la distancia euclidiana u otras heurísticas según tu problema
         return Math.sqrt(Math.pow(hasta.getX() - desde.getX(), 2) + Math.pow(hasta.getY() - desde.getY(), 2));
     }
 
@@ -147,7 +146,6 @@ public class PlanificadorRuta {
         List<NodoMapa> vecinos = new ArrayList<>();
         int x = posicionActual.getX();
         int y = posicionActual.getY();
-        // 1440 + 1 -> 1441(proximo nodo)
         double arriveTime = posicionActual.getTiempoInicio() + 2.4;
 
         Calendar calendar = Calendar.getInstance();
@@ -158,38 +156,24 @@ public class PlanificadorRuta {
         calendar.set(Calendar.MINUTE, (int) arriveTime % 60);
 
         List<Bloqueo> bloqueoFuturo = Bloqueo.bloqueosActivos(bloqueos, calendar);
-
-        /*
-         * List<NodoBloqueado> posicionesBloqueadas =
-         * obtenerNodosBloqueados(bloqueoFuturo);
-         */
         List<Nodo> nodosBloqueados = Bloqueo.NodosBloqueados(bloqueoFuturo);
-
-        // Comprobar los nodos vecinos en las cuatro direcciones: arriba, abajo,
-        // izquierda y derecha
-        // Asegúrate de verificar los límites de la cuadrícula para evitar
-        // desbordamientos
         if (x > 0 && x <= 70) {
-            vecinos.add(gridGraph.getMapa()[x - 1][y]); // Nodo izquierda
+            vecinos.add(gridGraph.getMapa()[x - 1][y]);
         }
         if (x >= 0 && x < 70) {
-            vecinos.add(gridGraph.getMapa()[x + 1][y]); // Nodo derecha
+            vecinos.add(gridGraph.getMapa()[x + 1][y]);
         }
         if (y > 0 && y <= 50) {
-            vecinos.add(gridGraph.getMapa()[x][y - 1]); // Nodo abajo
+            vecinos.add(gridGraph.getMapa()[x][y - 1]);
         }
         if (y >= 0 && y < 50) {
-            vecinos.add(gridGraph.getMapa()[x][y + 1]); // Nodo arriba
+            vecinos.add(gridGraph.getMapa()[x][y + 1]);
         }
-
-        // List<NodoMapa> vecinosBloqueos = Bloqueo.NodosBloqueados(bloqueoFuturo);
-        // vecinos.add(posicionActual); // Agregar el nodo actual a la lista de vecinos
 
         List<NodoMapa> vecinosItera = new ArrayList<>(vecinos);
         for (Nodo nodo : nodosBloqueados) {
             for (NodoMapa vecino : vecinosItera) {
                 if (nodo.getX() == objetivo.getX() && nodo.getY() == objetivo.getY()) {
-                    // Si el objetivo esta en el bloqueo, no se quita
                     pedido.setIsbloqueo(true);
                     continue;
                 } else {

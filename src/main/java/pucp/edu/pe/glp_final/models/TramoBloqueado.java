@@ -17,7 +17,7 @@ import lombok.Setter;
 @Getter
 @Entity
 @Table(name = "tramo_bloqueo")
-public class NodoBloqueado {
+public class TramoBloqueado {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;

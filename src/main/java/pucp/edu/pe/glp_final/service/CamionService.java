@@ -5,8 +5,8 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import pucp.edu.pe.glp_final.models.Camion;
 import pucp.edu.pe.glp_final.repository.CamionRepository;
+import pucp.edu.pe.glp_final.models.Camion;
 
 @Service
 public class CamionService {
@@ -22,15 +22,7 @@ public class CamionService {
         return camionRepository.save(vehiculo);
     }
 
-    public List<Camion> saveAll(List<Camion> vehiculos) {
-        return camionRepository.saveAll(vehiculos);
-    }
-
-    public void deleteAll() {
-        camionRepository.deleteAll();
-    }
-
-    public Camion findByVehiculo(String Codigo) {
+    public Camion findCamionByCodigo(String Codigo) {
         return camionRepository.findByCodigo(Codigo);
     }
 

@@ -3,7 +3,6 @@ package pucp.edu.pe.glp_final.models;
 import java.util.ArrayList;
 import java.util.List;
 
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -62,17 +61,13 @@ public class Camion {
     @Transient
     private List<NodoMapa> route;
 
-    private boolean capacidadCompleta;
-
-    private double cargaAsignada;
-
-    private double tiempoViaje;
-
     @Transient
-    public NodoMapa ubicacionActual; // ubicación actual del vehículo
+    public NodoMapa ubicacionActual;
 
-    private Integer tipoAveria; // Tipo Averia 0 -> Ninguna Averia, 1 -> Averia Leve, 2 -> Averia Grave, 3 -> Averia
-    // Critica
+    private boolean capacidadCompleta;
+    private double cargaAsignada;
+    private double tiempoViaje;
+    private Integer tipoAveria;
     private boolean enAveria;
     private Double tiempoInicioAveria;
     private Double tiempoFinAveria;
@@ -84,54 +79,19 @@ public class Camion {
     @Transient
     private List<Pedido> pedidosAsignados;
 
-    public Camion(String tipo, int numero, double tara, double carga, double pesoCarga,
-                  double peso, double combustible, double velocidad) {
-        this.codigo = generarCodigo(tipo, numero);
-        this.tara = tara;
-        this.carga = carga;
-        this.pesoCarga = pesoCarga;
-        this.peso = peso;
-        this.combustible = combustible;
-        this.distanciaMaxima = calcularDistancia(); // Calcular la distancia al crear un camion
-        this.velocidad = velocidad;
-        this.route = new ArrayList<>();
-        this.capacidadCompleta = false;
-        this.cargaAsignada = 0;
-        this.tiempoViaje = 0;
-        this.ubicacionActual = null;
-        this.distanciaRecorrida = 0.0;
-        this.tipoAveria = 0;
-        this.enAveria = false;
-        this.glpDisponible = carga;
-        this.pedidosAsignados = new ArrayList<>();
-        this.cargaAnterior = 0;
-    }
-
-    public double calcularDistancia() {
-        double distanciaKm = carga * 180 / peso;
-        return distanciaKm;
-    }
-
-    private String generarCodigo(String tipo, int numero) {
-        String formatoTipo = tipo.toUpperCase(); // Asegura que el tipo esté en mayúsculas
-        String formatoCorrelativo = String.format("%02d", numero); // Asegura que el correlativo tenga dos dígitos
-        return formatoTipo + formatoCorrelativo;
-    }
-
-    public void inicializarRuta() {
+    public void crearRuta() {
         this.route = new ArrayList<>();
     }
 
-    public void asignarPedido(Pedido pedido) {
+    public void asignar(Pedido pedido) {
         cargaAsignada += pedido.getCantidadGLP();
     }
 
-    public boolean CheckIfFits(int demanda) {
-        return ((cargaAsignada + demanda <= glpDisponible)); // true -> si la demanda adicional puede ser acomodada sin exceder
-        // la capacidad
+    public boolean tieneCapacidad(int demanda) {
+        return ((cargaAsignada + demanda <= glpDisponible));
     }
 
-    public void asignarPosicion(NodoMapa node) {
+    public void posicionar(NodoMapa node) {
         this.ubicacionActual = node;
         route.add(node);
     }

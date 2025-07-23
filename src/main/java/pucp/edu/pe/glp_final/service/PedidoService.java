@@ -77,7 +77,6 @@ public class PedidoService {
                 Optional<Cliente> clienteOptional = clientRepository.findById(pedido.getIdCliente());
                 Cliente cliente;
                 if (!clienteOptional.isPresent()) {
-                    //un formato para que despues se edam edotar
                     cliente = new Cliente();
                     cliente.setId(pedido.getIdCliente());
                     cliente.setNombre("Cliente " + pedido.getIdCliente());

@@ -23,7 +23,6 @@ import org.springframework.web.multipart.MultipartFile;
 import lombok.Getter;
 import lombok.Setter;
 import pucp.edu.pe.glp_final.models.Pedido;
-import pucp.edu.pe.glp_final.service.FileStorageService;
 import pucp.edu.pe.glp_final.service.PedidoService;
 
 @RestController
@@ -37,8 +36,6 @@ public class PedidoController {
     @Autowired
     private PedidoService pedidoService;
 
-    @Autowired
-    private FileStorageService storageService;
 
     @GetMapping
     @ResponseBody
@@ -74,16 +71,10 @@ public class PedidoController {
         return pedidoService.obtenerPorId(id);
     }
 
-    //Lectura de archivos de pedidos  SE GUARDA EN BD
-    @PostMapping(value = "/leer-pedidos", consumes = "multipart/form-data")
+    @PostMapping(value = "/cargar-archivo", consumes = "multipart/form-data")
     @ResponseBody
     public ResponseEntity<Object> uploadFile(@RequestParam("file") MultipartFile file) {
         try {
-            // Primero guardamos el archivo
-            //storageService.saveFile(file);
-
-            // Procesamos el archivo para contar los pedidos
-            //List<Pedido> pedidos = pedidoService.procesarArchivo(file);
             List<Pedido> pedidos = pedidoService.savePedidosArchivo(file);
             Map<String, String> response = new HashMap<>();
             response.put("mensaje", "Se subió el archivo y se procesaron " + pedidos.size() + " pedidos correctamente");
@@ -95,9 +86,9 @@ public class PedidoController {
         }
     }
 
-    @GetMapping("/nombre-pedidos-archivos")
+    @GetMapping("/meses")
     @ResponseBody
-    public ResponseEntity<?> obtenerNombrePedidosArchivo() {
+    public ResponseEntity<?> obtenerMesesCargados() {
         Map<String, Object> response = new HashMap<>();
         List<String> nombres = pedidoService.getMesesPedido();
         response.put("Mensaje", "Nombres de archivos");
@@ -105,37 +96,19 @@ public class PedidoController {
         return ResponseEntity.ok(response);
     }
 
-    //Lectura de archivos de pedidos, donde se guarda en la base de datos
-    @PostMapping(value = "/upload/diario", consumes = "multipart/form-data")
-    @ResponseBody
-    public ResponseEntity<Object> uploadFileDiario(@RequestParam("files") MultipartFile file) {
-        try {
-            // Procesar directamente el archivo sin guardarlo
-            List<Pedido> pedidos = pedidoService.procesarArchivo(file);
-
-            // Guardar los pedidos en la base de datos
-            for (Pedido pedido : pedidos) {
-                pedidoService.guardar(pedido);
-            }
-
-            Map<String, String> mapa = new HashMap<String, String>();
-            mapa.put("Mensaje", "Se procesaron " + pedidos.size() + " pedidos correctamente");
-            return ResponseEntity.status(HttpStatus.OK).body(mapa);
-        } catch (Exception e) {
-            Map<String, String> mapa = new HashMap<String, String>();
-            mapa.put("Error", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(mapa);
-        }
-    }
-
-    @PostMapping("/")
+    @PostMapping
     @ResponseBody
     public Pedido save(@RequestBody Pedido pedido) {
 
         pedido.setHoraDeInicio(pedido.getDia() * 1440 + pedido.getHora() * 60 + pedido.getMinuto());
         pedido.setTiempoLlegada(pedido.getHoraDeInicio() + pedido.getHorasLimite() * 60);
-        pedido.setFechaDeRegistro(LocalDateTime.of(pedido.getAnio(), pedido.getMesPedido(), pedido.getDia(),
-                pedido.getHora(), pedido.getMinuto()));
+        pedido.setFechaDeRegistro(
+                LocalDateTime.of(pedido.getAnio(),
+                        pedido.getMesPedido(),
+                        pedido.getDia(),
+                        pedido.getHora(),
+                        pedido.getMinuto())
+        );
         LocalDateTime fechaEntrega = pedido.getFechaDeRegistro().plusHours(pedido.getHorasLimite());
         pedido.setFechaEntrega(fechaEntrega);
         pedido.setFecDia(LocalDateTime.now());
@@ -166,21 +139,6 @@ public class PedidoController {
         } catch (Exception e) {
             Map<String, String> response = new HashMap<>();
             response.put("error", "Error al eliminar los pedidos: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
-    }
-
-    @GetMapping("/count")
-    @ResponseBody
-    public ResponseEntity<Object> count() {
-        Map<String, Object> response = new HashMap<>();
-        try {
-            response.put("mensaje", "Pedidos totales");
-            response.put("total", pedidoService.contarPedidosTotales());
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            response.put("mensaje", "Error en la cuenta de pedidos");
-            response.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }

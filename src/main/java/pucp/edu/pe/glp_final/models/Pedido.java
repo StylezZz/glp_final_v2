@@ -1,6 +1,7 @@
 package pucp.edu.pe.glp_final.models;
 
 import java.time.LocalDateTime;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -36,11 +37,11 @@ public class Pedido {
     private int posY;
     private String idCliente;
 
-    private int cantidadGLP; // En m3
-    private int horasLimite; // En horas
-    private boolean entregado; // Si el pedido ha sido entregado o no
+    private int cantidadGLP;
+    private int horasLimite;
+    private boolean entregado;
     private int cantidadGLPAsignada;
-    private boolean asignado; // Si el pedido ha sido asignado a un camion o no
+    private boolean asignado;
     private int horaDeInicio;
     private int anio;
     private int mesPedido;
@@ -85,30 +86,26 @@ public class Pedido {
         this.fecDia = LocalDateTime.now();
     }
 
-    public static Pedido leerRegistro(String registro,int anio,int mes, int id){
+    public static Pedido leerRegistro(String registro, int anio, int mes, int id) {
 
-        Pedido pedido=new Pedido();
+        Pedido pedido = new Pedido();
         pedido.setAnio(anio);
         pedido.setMesPedido(mes);
-        // Dividir el registro en partes usando ":" como separador
         String[] partes = registro.split(":");
 
-        // Verificar si el registro tiene el formato esperado
         if (partes.length != 2) {
             throw new IllegalArgumentException("Formato de registro incorrecto: " + registro);
         }
 
-        // Formato de tiempo (##d##h##m)
         String[] tiempo = partes[0].split("[dhm]");
         if (tiempo.length != 3) {
             throw new IllegalArgumentException("Formato de tiempo incorrecto: " + partes[0]);
         }
 
         pedido.setDia(Integer.parseInt(tiempo[0]));
-        pedido.setHora( Integer.parseInt(tiempo[1]));
+        pedido.setHora(Integer.parseInt(tiempo[1]));
         pedido.setMinuto(Integer.parseInt(tiempo[2]));
 
-        // Formato de ubicación (posX,posY)
         String[] ubicacion = partes[1].split(",");
         if (ubicacion.length != 5) {
             throw new IllegalArgumentException("Formato de ubicación incorrecto: " + partes[1]);
@@ -116,25 +113,20 @@ public class Pedido {
 
         pedido.setPosX(Integer.parseInt(ubicacion[0]));
         pedido.setPosY(Integer.parseInt(ubicacion[1]));
-
-        // Formato de cliente (c-idCliente)
         pedido.setIdCliente(ubicacion[2]);
 
-        //no solo está le número sino también m3
         String[] cantidad = ubicacion[3].split("m3");
         pedido.setCantidadGLP(Integer.parseInt(cantidad[0]));
         pedido.setHorasLimite(Integer.parseInt(ubicacion[4].replaceAll("[^0-9]", "")));
         pedido.setEntregado(false);
         pedido.setAsignado(false);
-        pedido.setHoraDeInicio(pedido.getHora()*60 + pedido.getMinuto() + pedido.getDia() * 1440);
-        pedido.setTiempoLlegada(pedido.getHoraDeInicio() + pedido.getHorasLimite()*60);
+        pedido.setHoraDeInicio(pedido.getHora() * 60 + pedido.getMinuto() + pedido.getDia() * 1440);
+        pedido.setTiempoLlegada(pedido.getHoraDeInicio() + pedido.getHorasLimite() * 60);
 
-        LocalDateTime fechaDeRegistro = LocalDateTime.of(anio,mes,pedido.getDia(),pedido.getHora(),pedido.getMinuto());
+        LocalDateTime fechaDeRegistro = LocalDateTime.of(anio, mes, pedido.getDia(), pedido.getHora(), pedido.getMinuto());
         LocalDateTime fechaEntrega = fechaDeRegistro.plusHours(pedido.getHorasLimite());
         pedido.setFechaDeRegistro(fechaDeRegistro);
         pedido.setFechaEntrega(fechaEntrega);
-
-        // Guardar el string original del tiempo de registro
         pedido.setTiempoRegistroStr(partes[0]);
 
         return pedido;

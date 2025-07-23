@@ -42,7 +42,7 @@ public class NodoMapa {
         this.tiempoFin = 0;
     }
 
-    public double distance(NodoMapa nodoMapa) {
+    public double calcularDistancia(NodoMapa nodoMapa) {
         return Math.sqrt(Math.pow(this.x - nodoMapa.getX(), 2) + Math.pow(this.y - nodoMapa.getY(), 2));
     }
 }
