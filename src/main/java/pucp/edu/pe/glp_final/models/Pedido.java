@@ -59,7 +59,6 @@ public class Pedido {
     @JoinColumn(name = "cliente_id")
     private Cliente cliente;
 
-
     public Pedido(
             int dia,
             int hora,

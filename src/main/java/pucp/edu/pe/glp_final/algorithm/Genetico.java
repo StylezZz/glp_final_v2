@@ -191,7 +191,7 @@ public class Genetico {
 
                     if (mes == ubicacion.getMes() && anio == ubicacion.getAnio()) {
                         double startTime = timer;
-                        if ((int) ubicacion.getTiempoFin() <= startTime) {
+                        if ((int) ubicacion.getTiempoInicio() <= startTime) { // ACA
                             distanciaRecorrida = getDistanciaRecorrida(anio, mes, camion, distanciaRecorrida, ubicacion);
                             if (ubicacion.isEsAlmacen()) {
                                 for (Almacen deposito2 : mapa.getAlmacenes()) {
@@ -208,7 +208,7 @@ public class Genetico {
                                 ubicacion.getPedido().setIdCamion(null);
                             }
                             if (ubicacion.isEsAlmacen()) {
-                                if ((int) ubicacion.getTiempoFin() > startTime) {
+                                if ((int) ubicacion.getTiempoInicio() > startTime) { // ACA
                                     if (i == 0) {
                                         camion.setUbicacionActual(ubicacion);
                                         continue;
@@ -422,9 +422,9 @@ public class Genetico {
             }
         }
         if (tipoSimulacion == 1) {
-            planificarPedidosDiaria(primeraVez, dia, hora, minuto, mes, anio, bloqueos, timer);
+            planificarPedidosDiaria(primeraVez, timer);
         } else {
-            planificarPedidos(primeraVez, dia, hora, minuto, mes, anio, bloqueos, timer);
+            planificarPedidos(primeraVez, timer);
         }
         for (Camion camion : camiones) {
             if (camion.getRoute().isEmpty()) {
@@ -455,7 +455,7 @@ public class Genetico {
                 camion.setUbicacionActual(posicionActual);
                 mapa.getMapa()[12][8].setEsRuta(true);
             }
-            construirSolucion(camion, posicionActual, anio, mes, dia, hora, minuto, bloqueos, primeraVez, tipoSimulacion);
+            generarSolucion(camion, posicionActual, anio, mes, dia, hora, minuto, bloqueos, tipoSimulacion);
             volverAlmacen(camion, bloqueos, anio, mes, dia, hora, minuto, tipoSimulacion);
         }
 
@@ -645,8 +645,8 @@ public class Genetico {
         return deposito;
     }
 
-    public void construirSolucion(Camion camion, NodoMapa posicionActual, int anio, int mes, int dia, int hora,
-                                  int minuto, List<Bloqueo> bloqueos, int primeraVez, int tipoSimulacion) {
+    public void generarSolucion(Camion camion, NodoMapa posicionActual, int anio, int mes, int dia, int hora,
+                                int minuto, List<Bloqueo> bloqueos, int tipoSimulacion) {
 
         if (camion.getPedidosAsignados() == null)
             return;
@@ -725,7 +725,7 @@ public class Genetico {
     }
 
     public void asignarPedidosACamionesLlenos(int primeraVez, double timer) {
-        NodoMapa posicionActual = null;
+        NodoMapa posicionActual;
         for (Camion camion : camiones) {
 
             if (camion.isEnAveria()) {
@@ -755,9 +755,7 @@ public class Genetico {
         }
     }
 
-    public void planificarPedidos(int primeraVez, int dia, int hora, int minuto, int mes, int anio,
-                                  List<Bloqueo> bloqueos, double timer) {
-
+    public void planificarPedidos(int primeraVez, double timer) {
         boolean camionVacio = false;
         for (Camion camion : camiones) {
             if (
@@ -778,9 +776,8 @@ public class Genetico {
 
     }
 
-    public void planificarPedidosDiaria(int primeraVez, int dia, int hora, int minuto, int mes, int anio,
-                                        List<Bloqueo> bloqueos, double timer) {
-        NodoMapa posicionActual = null;
+    public void planificarPedidosDiaria(int primeraVez, double timer) {
+        NodoMapa posicionActual;
         for (Camion camion : camiones) {
             if (camion.isEnAveria()) {
                 continue;
