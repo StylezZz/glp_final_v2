@@ -51,13 +51,20 @@ public class GeneticoController {
     @PostMapping("/inicializar")
     @ResponseBody
     public ResponseEntity<Object> inicializar(
-            @RequestParam(required = false) int tipoSimulacion
+            @RequestParam(required = false) int tipoSimulacion,
+            @RequestParam(required = false) int dia,
+            @RequestParam(required = false) int mes,
+            @RequestParam(required = false) int anio,
+            @RequestParam(required = false) int hora,
+            @RequestParam(required = false) int minuto
+
     ) {
         camiones = camionService.findAll();
-        aco = new Genetico(camiones, tipoSimulacion);
+        LocalDateTime fechaBaseSimulacion = LocalDateTime.of(anio, mes, dia, hora, minuto);
+        aco = new Genetico(camiones, tipoSimulacion, fechaBaseSimulacion);
 
         Map<String, String> response = new HashMap<>();
-        response.put("mensaje", "Algoritmo de planificación inicializado");
+        response.put("mensaje", "Algoritmo de planificación inicializado para la fecha " + fechaBaseSimulacion);
         return ResponseEntity.ok(response);
     }
 
@@ -65,7 +72,8 @@ public class GeneticoController {
     @ResponseBody
     public ResponseEntity<List<Camion>> ejecutarDia(
             @RequestParam(required = false) int anio,
-            @RequestParam(required = false) int mes, @RequestParam(required = false) double timer,
+            @RequestParam(required = false) int mes,
+            @RequestParam(required = false) double timer,
             @RequestParam(required = false) int minutosPorIteracion,
             @RequestBody(required = false) List<Averia> averias
     ) {
@@ -74,8 +82,21 @@ public class GeneticoController {
         int hora = (((int) timer % 1440) / 60);
         int minuto = ((int) timer % 60);
 
+        int mesAjustado = mes;
+        int anioAjustado = anio;
+        int diaAjustado = dia;
+
+        while (diaAjustado > getDaysInMonth(anioAjustado, mesAjustado)) {
+            diaAjustado -= getDaysInMonth(anioAjustado, mesAjustado);
+            mesAjustado++;
+            if (mesAjustado > 12) {
+                mesAjustado = 1;
+                anioAjustado++;
+            }
+        }
+
         gestionarAverias(averias, timer);
-        gestionarPedidos(anio, mes, timer, minutosPorIteracion, dia, hora, minuto);
+        gestionarPedidos(anioAjustado, mesAjustado, timer, minutosPorIteracion, diaAjustado, hora, minuto);
         primeraEjecucionDia = 1;
         return ResponseEntity.ok(aco.getCamiones());
 
@@ -129,26 +150,45 @@ public class GeneticoController {
             @RequestBody(required = false) List<Averia> averias
     ) {
         if (averias == null) averias = new ArrayList<>();
+
         int dia = ((int) timer / 1440);
         int hora = (((int) timer % 1440) / 60);
         int minuto = ((int) timer % 60);
+
+        int mesAjustado = mes;
+        int anioAjustado = anio;
+        int diaAjustado = dia;
+
+        while (diaAjustado > getDaysInMonth(anioAjustado, mesAjustado)) {
+            diaAjustado -= getDaysInMonth(anioAjustado, mesAjustado);
+            mesAjustado++;
+            if (mesAjustado > 12) {
+                mesAjustado = 1;
+                anioAjustado++;
+            }
+        }
+
         gestionarAverias(averias, timer);
 
         if (primeraEjecucionSemanal == 0) {
             pedidos = simulacionController.getPedidos();
             pedidosSimulacion = pedidoService.dividirPedidos(pedidos, 2);
             List<Bloqueo> bloqueos = simulacionController.getBloqueos();
-            aco.simulacionRuteo(anio, mes, dia, hora, minuto, minutosPorIteracion, pedidosSimulacion, bloqueos,
-                    pedidos, primeraEjecucionSemanal, timer, 2);
+            aco.simulacionRuteo(anioAjustado, mesAjustado, diaAjustado, hora, minuto, minutosPorIteracion,
+                    pedidosSimulacion, bloqueos, pedidos, primeraEjecucionSemanal, timer, 2);
         } else {
             List<Bloqueo> bloqueos = simulacionController.getBloqueos();
-            aco.simulacionRuteo(anio, mes, dia, hora, minuto, minutosPorIteracion, pedidosSimulacion, bloqueos,
-                    pedidos, primeraEjecucionSemanal, timer, 2);
+            aco.simulacionRuteo(anioAjustado, mesAjustado, diaAjustado, hora, minuto, minutosPorIteracion,
+                    pedidosSimulacion, bloqueos, pedidos, primeraEjecucionSemanal, timer, 2);
         }
 
         primeraEjecucionSemanal = 1;
         return ResponseEntity.ok(aco.getCamiones());
 
+    }
+
+    private int getDaysInMonth(int year, int month) {
+        return java.time.YearMonth.of(year, month).lengthOfMonth();
     }
 
     @GetMapping("/bloqueos")

@@ -54,8 +54,10 @@ public class BloqueoService {
         LocalDateTime fechaFin = fechaInicio.plusHours(168);
 
         for (Bloqueo bloqueo : bloqueos) {
-            LocalDateTime fechaBloqueo = bloqueo.getFechaInicio();
-            if (!fechaBloqueo.isBefore(fechaInicio) && !fechaBloqueo.isAfter(fechaFin)) {
+            LocalDateTime inicioBloqueo = bloqueo.getFechaInicio();
+            LocalDateTime finBloqueo = bloqueo.getFechaFin();
+
+            if (!inicioBloqueo.isAfter(fechaFin) && !finBloqueo.isBefore(fechaInicio)) {
                 bloqueosSemanal.add(bloqueo);
             }
         }
