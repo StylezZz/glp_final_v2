@@ -364,6 +364,9 @@ public class Genetico {
                         bloqueos,
                         anio,
                         mes,
+                        dia,
+                        hora,
+                        minuto,
                         camionMenorDistancia,
                         null,
                         tipoSimulacion,
@@ -603,7 +606,7 @@ public class Genetico {
         NodoMapa posicionActual = camion.getUbicacionActual();
         NodoMapa nodoDeposito = new NodoMapa(0, deposito.getX(), deposito.getY(), true);
         planificadorRuta.encontrarCamino(mapa, posicionActual, nodoDeposito, bloqueos,
-                anio, mes, camion, null, tipoSimulacion, fechaBaseSimulacion);
+                anio, mes, dia, hora, minuto, camion, null, tipoSimulacion, fechaBaseSimulacion);
 
         if (tipoSimulacion == 1) {
             camion.getUbicacionActual().setTiempoFin(camion.getUbicacionActual().getTiempoInicio() + 1);
@@ -702,7 +705,7 @@ public class Genetico {
                 node.setNodoPrevio(null);
             }
             planificadorRuta.encontrarCamino(mapa, posicionActual, nodoPedido, bloqueos,
-                    anio, mes, camion, pedido, tipoSimulacion, fechaBaseSimulacion);
+                    anio, mes, dia, hora, minuto, camion, pedido, tipoSimulacion, fechaBaseSimulacion);
 
             posicionActual = new NodoMapa(0, camion.getUbicacionActual().getX(),
                     camion.getUbicacionActual().getY(), false);

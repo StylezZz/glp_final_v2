@@ -7,6 +7,7 @@ import pucp.edu.pe.glp_final.models.Pedido;
 import pucp.edu.pe.glp_final.models.Nodo;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 public class PlanificadorRuta {
@@ -18,6 +19,9 @@ public class PlanificadorRuta {
             List<Bloqueo> bloqueos,
             int anio,
             int mes,
+            int dia,
+            int hora,
+            int minuto,
             Camion vehiculo,
             Pedido pedido,
             int tipoSimulacion,
@@ -68,7 +72,7 @@ public class PlanificadorRuta {
             } else {
                 actual.setTiempoFin(actual.getTiempoInicio() + 1.2);
             }
-            for (NodoMapa vecino : obtenerNodosVecinos(actual, bloqueos, anio, mes, gridGraph, objetivo, pedido, fechaBaseSimulacion)) {
+            for (NodoMapa vecino : obtenerNodosVecinos(actual, bloqueos, anio, mes, dia, hora, minuto, gridGraph, objetivo, pedido, fechaBaseSimulacion)) {
 
                 if (nodosVisitados.contains(vecino)) continue;
                 double nuevoCosto = costoRealAcumulado.get(actual) + calcularHeuristica(actual, vecino);
@@ -148,6 +152,9 @@ public class PlanificadorRuta {
             List<Bloqueo> bloqueos,
             int anio,
             int mes,
+            int dia,
+            int hora,
+            int minuto,
             Mapa mapa,
             NodoMapa objetivo,
             Pedido pedido,
@@ -161,6 +168,15 @@ public class PlanificadorRuta {
         // ✅ NUEVA LÓGICA: Usar fechaBaseSimulacion si está disponible
         Calendar calendar = Calendar.getInstance();
         if (fechaBaseSimulacion != null) {
+            LocalDateTime fechaEsperada = LocalDateTime.of(anio, mes, dia, hora, minuto);
+            long tiempoEsperado = ChronoUnit.MINUTES.between(fechaBaseSimulacion, fechaEsperada);
+
+            // Si arriveTime está muy lejos de tiempoEsperado, hay problema de escala
+            if (Math.abs(arriveTime - tiempoEsperado) > 1440) { // Más de 1 día de diferencia
+                // Usar tiempo esperado en lugar del arriveTime problemático
+                arriveTime = tiempoEsperado + 2.4;
+            }
+
             LocalDateTime fechaCalculada = fechaBaseSimulacion.plusMinutes((long) arriveTime);
             calendar.set(Calendar.YEAR, fechaCalculada.getYear());
             calendar.set(Calendar.MONTH, fechaCalculada.getMonthValue() - 1);

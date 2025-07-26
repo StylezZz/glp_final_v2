@@ -108,22 +108,16 @@ public class Bloqueo {
     }
 
     public boolean activo(Calendar momento) {
-        int anio = momento.get(Calendar.YEAR);
-        int mes = momento.get(Calendar.MONTH) + 1;
-        int dia = momento.get(Calendar.DAY_OF_MONTH);
-        int hora = momento.get(Calendar.HOUR_OF_DAY);
-        int min = momento.get(Calendar.MINUTE);
-        if (
-                (anio > this.anio || (anio == this.anio && mes > this.mes))
-                        || (anio < this.anio || mes < this.mes || dia < diaInicio)
-                        || (dia == diaInicio && hora < horaInicio)
-                        || (dia == diaInicio && hora == horaInicio && min < minutoInicio)
-                        || (dia == diaInicio && hora == horaInicio &&
-                        (dia > diaFin || hora > horaFin || (hora == horaFin && min >= minutoFin))
-                )
-        )
-            return false;
-        return true;
+        LocalDateTime momentoDateTime = LocalDateTime.of(
+                momento.get(Calendar.YEAR),
+                momento.get(Calendar.MONTH) + 1,
+                momento.get(Calendar.DAY_OF_MONTH),
+                momento.get(Calendar.HOUR_OF_DAY),
+                momento.get(Calendar.MINUTE)
+        );
+
+        return !momentoDateTime.isBefore(fechaInicio) &&
+                momentoDateTime.isBefore(fechaFin);
     }
 
 
