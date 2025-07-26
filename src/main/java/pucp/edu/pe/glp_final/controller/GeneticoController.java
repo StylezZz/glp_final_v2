@@ -174,8 +174,20 @@ public class GeneticoController {
             pedidos = simulacionController.getPedidos();
             pedidosSimulacion = pedidoService.dividirPedidos(pedidos, 2);
             List<Bloqueo> bloqueos = simulacionController.getBloqueos();
-            aco.simulacionRuteo(anioAjustado, mesAjustado, diaAjustado, hora, minuto, minutosPorIteracion,
-                    pedidosSimulacion, bloqueos, pedidos, primeraEjecucionSemanal, timer, 2);
+            aco.simulacionRuteo(
+                    anioAjustado,
+                    mesAjustado,
+                    diaAjustado,
+                    hora,
+                    minuto,
+                    minutosPorIteracion,
+                    pedidosSimulacion,
+                    bloqueos,
+                    pedidos,
+                    primeraEjecucionSemanal,
+                    timer,
+                    2
+            );
         } else {
             List<Bloqueo> bloqueos = simulacionController.getBloqueos();
             aco.simulacionRuteo(anioAjustado, mesAjustado, diaAjustado, hora, minuto, minutosPorIteracion,

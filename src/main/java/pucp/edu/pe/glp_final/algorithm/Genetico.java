@@ -9,7 +9,6 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
-import org.springframework.cglib.core.Local;
 import org.springframework.stereotype.Component;
 import pucp.edu.pe.glp_final.models.*;
 import lombok.NoArgsConstructor;
@@ -152,7 +151,11 @@ public class Genetico {
             camion.setCargaAsignada(0);
             if (tipoSimulacion == 1) {
                 for (NodoMapa ubicacion : camion.getRoute()) {
-                    if (mes == ubicacion.getMes() && anio == ubicacion.getAnio()) {
+                    if (
+                            (mes == ubicacion.getMes() && anio == ubicacion.getAnio())
+                                    || (mes == ubicacion.getMes() + 1 && anio == ubicacion.getAnio())
+                                    || (mes == 1 && ubicacion.getMes() == 12 && anio == ubicacion.getAnio() + 1)
+                    ) {
                         double startTime = timer;
                         if (Math.round(ubicacion.getTiempoInicio()) < startTime) {
                             distanciaRecorrida = getDistanciaRecorrida(anio, mes, camion, distanciaRecorrida, ubicacion);
@@ -193,10 +196,13 @@ public class Genetico {
                 }
             } else {
                 for (NodoMapa ubicacion : camion.getRoute()) {
-
-                    if (mes == ubicacion.getMes() && anio == ubicacion.getAnio()) {
+                    if (
+                            (mes == ubicacion.getMes() && anio == ubicacion.getAnio())
+                                    || (mes == ubicacion.getMes() + 1 && anio == ubicacion.getAnio())
+                                    || (mes == 1 && ubicacion.getMes() == 12 && anio == ubicacion.getAnio() + 1)
+                    ) {
                         double startTime = timer;
-                        if ((int) ubicacion.getTiempoInicio() <= startTime) { // ACA
+                        if ((int) ubicacion.getTiempoFin() <= startTime) { // ACA
                             distanciaRecorrida = getDistanciaRecorrida(anio, mes, camion, distanciaRecorrida, ubicacion);
                             if (ubicacion.isEsAlmacen()) {
                                 for (Almacen deposito2 : mapa.getAlmacenes()) {
@@ -259,13 +265,24 @@ public class Genetico {
         }
     }
 
+    private boolean esUbicacionAnteriorOIgual(NodoMapa ubicacion, int anioActual, int mesActual) {
+        // Si año anterior, siempre true
+        if (ubicacion.getAnio() < anioActual) return true;
+
+        // Si año posterior, siempre false
+        if (ubicacion.getAnio() > anioActual) return false;
+
+        // Mismo año: comparar meses
+        return ubicacion.getMes() <= mesActual;
+    }
+
     private double getDistanciaRecorrida(int anio, int mes, Camion camion, double distanciaRecorrida, NodoMapa ubicacion) {
         distanciaRecorrida += 1;
         camion.setUbicacionActual(ubicacion);
         camion.setDistanciaRecorrida(distanciaRecorrida);
         camion.getUbicacionActual().setEsRuta(false);
         if (ubicacion.isEsPedido()) {
-            if (ubicacion.getMes() <= mes && ubicacion.getAnio() <= anio) {
+            if (esUbicacionAnteriorOIgual(ubicacion, anio, mes)) {
                 ubicacion.getPedido().setEntregado(true);
                 ubicacion.getPedido().setHoraDeInicio((int) ubicacion.getTiempoInicio());
                 ubicacion.getPedido().setTiempoLlegada((int) ubicacion.getTiempoFin());
@@ -497,12 +514,15 @@ public class Genetico {
 
     public void validarTiempoRuta(int anio, int mes, int dia, int hora, int minuto, int minutosPorIteracion,
                                   int tipoSimulacion) {
-
         double arriveTime = dia * 1440 + hora * 60 + minuto + minutosPorIteracion;
         for (Camion camion : camiones) {
             camion.setCargaAsignada(0);
             for (NodoMapa posicion : camion.getRoute()) {
-                if (anio == posicion.getAnio() && mes == posicion.getMes()) {
+                if (
+                        (anio == posicion.getAnio() && mes == posicion.getMes())
+                                || (anio == posicion.getAnio() && mes == posicion.getMes() + 1)
+                                || (anio == posicion.getAnio() + 1 && mes == 1 && posicion.getMes() == 12)
+                ) {
                     if ((int) posicion.getTiempoFin() <= arriveTime) {
                         if (posicion.isEsPedido()) {
                             camion.setCargaAsignada(
@@ -913,4 +933,5 @@ public class Genetico {
         }
         return ChronoUnit.MINUTES.between(fechaBaseSimulacion, pedido.getFechaEntrega());
     }
+
 }
