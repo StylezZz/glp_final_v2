@@ -21,6 +21,8 @@ import lombok.Setter;
 @NoArgsConstructor
 public class Genetico {
 
+    // Id
+    private long id; // Identificador único de la simulación
     private Mapa mapa;
     private List<Camion> camiones;
     private List<Pedido> pedidos;
@@ -43,6 +45,10 @@ public class Genetico {
         this.inicio = true;
         inicializarPoblacion();
         this.fechaBaseSimulacion = fechaBaseSimulacion;
+
+        // Generamos el id
+        this.id = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS).toEpochSecond(java.time.ZoneOffset.UTC);
+
     }
 
     public List<Camion> simulacionRuteo(

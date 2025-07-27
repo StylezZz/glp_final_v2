@@ -22,6 +22,9 @@ public class AveriaGenerada {
     @Column(name = "fecha_base_simulacion")
     private LocalDateTime fechaBaseSimulacion;
 
+    @Column(name = "simulacion_id")
+    private Long simulacionId;
+
     @Column(name = "codigo_camion")
     private String codigoCamion;
 

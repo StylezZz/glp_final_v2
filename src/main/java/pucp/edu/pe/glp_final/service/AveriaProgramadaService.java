@@ -2,7 +2,9 @@ package pucp.edu.pe.glp_final.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import pucp.edu.pe.glp_final.algorithm.NodoMapa;
 import pucp.edu.pe.glp_final.models.*;
+import pucp.edu.pe.glp_final.models.enums.TipoIncidente;
 import pucp.edu.pe.glp_final.repository.AveriaProgramadaRepository;
 import pucp.edu.pe.glp_final.repository.AveriaGeneradaRepository;
 import java.time.LocalDateTime;
@@ -22,6 +24,7 @@ public class AveriaProgramadaService {
      * Genera averías probabilísticamente basadas en averías programadas
      */
     public List<Averia> generarAveriasProbabilisticas(
+            Long simulacionId,
             LocalDateTime fechaBaseSimulacion,
             int turnoActual,
             List<Camion> camionesEnOperacion,
@@ -37,6 +40,7 @@ public class AveriaProgramadaService {
                     .filter(c -> c.getCodigo().equals(averiaProgramada.getCodigoCamion()))
                     .filter(c -> !c.isEnAveria()) // No está en avería
                     .filter(c -> c.getRoute() != null && !c.getRoute().isEmpty()) // Tiene ruta
+                    .filter(c -> estaEjecutandoRuta(c, momento))
                     .findFirst()
                     .orElse(null);
 
@@ -62,12 +66,28 @@ public class AveriaProgramadaService {
                     averiasGeneradas.add(averia);
 
                     // Guardar en base de datos
-                    guardarAveriaGenerada(fechaBaseSimulacion, averia, momento, porcentajeRecorrido);
+                    guardarAveriaGenerada(simulacionId, fechaBaseSimulacion, averia, momento, porcentajeRecorrido);
                 }
             }
         }
 
         return averiasGeneradas;
+    }
+
+    private boolean estaEnAlmacen(Camion camion) {
+        if (camion.getUbicacionActual() == null) {
+            return true; // Si no tiene ubicación, asumimos que está en almacén
+        }
+
+        int x = camion.getUbicacionActual().getX();
+        int y = camion.getUbicacionActual().getY();
+
+        // ✅ Posiciones de almacenes (deben coincidir con las del frontend)
+        boolean estaEnAlmacenCentral = (x == 12 && y == 8);
+        boolean estaEnAlmacenEste = (x == 63 && y == 3);
+        boolean estaEnAlmacenNorte = (x == 42 && y == 42);
+
+        return estaEnAlmacenCentral || estaEnAlmacenEste || estaEnAlmacenNorte;
     }
 
     /**
@@ -103,15 +123,42 @@ public class AveriaProgramadaService {
     /**
      * Guarda la avería generada en la base de datos
      */
-    private void guardarAveriaGenerada(LocalDateTime fechaBase, Averia averia, double momento, double porcentaje) {
+    private void guardarAveriaGenerada(Long simulacionId, LocalDateTime fechaBase, Averia averia, double momento, double porcentaje) {
         AveriaGenerada averiaGenerada = new AveriaGenerada();
+        averiaGenerada.setSimulacionId(simulacionId);
         averiaGenerada.setFechaBaseSimulacion(fechaBase);
         averiaGenerada.setCodigoCamion(averia.getCodigoCamion());
         averiaGenerada.setTipoAveria(averia.getTipoAveria());
         averiaGenerada.setTurnoAveria(averia.getTurnoAveria());
         averiaGenerada.setMomentoGeneracion(momento);
-        averiaGenerada.setPorcentajeRecorrido(porcentaje);
-        averiaGenerada.setDescripcion(averia.getDescripcion());
+        averiaGenerada.setPorcentajeRecorrido(porcentaje); // > 0.0 indica que es automática
+        averiaGenerada.setDescripcion("Avería automática - " + averia.getDescripcion());
+        averiaGenerada.setCreatedAt(LocalDateTime.now());
+
+        averiaGeneradaRepository.save(averiaGenerada);
+    }
+
+    /**
+     * Guarda una avería manual generada desde la plataforma
+     */
+    public void guardarAveriaManual(
+            Long simulacionId,
+            LocalDateTime fechaBaseSimulacion,
+            String codigoCamion,
+            TipoIncidente tipoAveria,
+            int turnoAveria,
+            String descripcion,
+            double momentoGeneracion
+    ) {
+        AveriaGenerada averiaGenerada = new AveriaGenerada();
+        averiaGenerada.setSimulacionId(simulacionId);
+        averiaGenerada.setFechaBaseSimulacion(fechaBaseSimulacion);
+        averiaGenerada.setCodigoCamion(codigoCamion);
+        averiaGenerada.setTipoAveria(tipoAveria);
+        averiaGenerada.setTurnoAveria(turnoAveria);
+        averiaGenerada.setMomentoGeneracion(momentoGeneracion);
+        averiaGenerada.setPorcentajeRecorrido(0.0); // 0.0 indica que es manual
+        averiaGenerada.setDescripcion(descripcion);
         averiaGenerada.setCreatedAt(LocalDateTime.now());
 
         averiaGeneradaRepository.save(averiaGenerada);
@@ -120,7 +167,42 @@ public class AveriaProgramadaService {
     /**
      * Obtiene averías generadas por simulación
      */
-    public List<AveriaGenerada> obtenerAveriasPorSimulacion(LocalDateTime fechaBase) {
-        return averiaGeneradaRepository.findByFechaBaseSimulacion(fechaBase);
+    public List<AveriaGenerada> obtenerAveriasPorSimulacion(Long simulacionId) {
+        return averiaGeneradaRepository.findBySimulacionIdOrderByMomentoGeneracionDesc(simulacionId);
     }
+
+    private boolean estaEjecutandoRuta(Camion camion, double timerActual) {
+        if (camion.getRoute() == null || camion.getRoute().isEmpty()) {
+            return false;
+        }
+
+        // ✅ VERIFICACIÓN 1: Temporal - debe estar dentro del rango de tiempo de la ruta
+        double tiempoInicioRuta = camion.getRoute().get(0).getTiempoInicio();
+        double tiempoFinRuta = camion.getRoute().get(camion.getRoute().size() - 1).getTiempoFin();
+
+        boolean dentroDelRangoTemporal = timerActual >= tiempoInicioRuta && timerActual <= tiempoFinRuta;
+
+        if (!dentroDelRangoTemporal) {
+            return false; // Fuera del rango temporal de la ruta
+        }
+
+        // ✅ VERIFICACIÓN 2: Progreso - debe tener al menos un nodo en progreso
+        for (NodoMapa nodo : camion.getRoute()) {
+            boolean nodoEmpezado = timerActual >= nodo.getTiempoInicio();
+            boolean nodoNoTerminado = timerActual < nodo.getTiempoFin();
+
+            if (nodoEmpezado && nodoNoTerminado) {
+                System.out.println("✅ Camión " + camion.getCodigo() + " ejecutando nodo en tiempo " +
+                        timerActual + " (nodo: " + nodo.getTiempoInicio() + "-" + nodo.getTiempoFin() + ")");
+                return true; // Hay un nodo actualmente en ejecución
+            }
+        }
+
+        // ✅ VERIFICACIÓN 3: Si no hay nodo en progreso, verificar que ya empezó pero no terminó
+        boolean yaEmpezó = timerActual > tiempoInicioRuta + 2; // Al menos 2 minutos después de empezar
+        boolean noTerminó = timerActual < tiempoFinRuta - 2; // Al menos 2 minutos antes de terminar
+
+        return yaEmpezó && noTerminó;
+    }
+
 }
