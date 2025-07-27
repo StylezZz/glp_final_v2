@@ -8,6 +8,7 @@ import java.util.List;
 
 @Repository
 public interface AveriaGeneradaRepository extends JpaRepository<AveriaGenerada, Long> {
+    List<AveriaGenerada> findBySimulacionIdOrderByMomentoGeneracionDesc(Long simulacionId);
     List<AveriaGenerada> findByFechaBaseSimulacion(LocalDateTime fechaBase);
     List<AveriaGenerada> findByCodigoCamion(String codigoCamion);
 }

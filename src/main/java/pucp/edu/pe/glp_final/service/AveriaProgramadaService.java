@@ -3,6 +3,7 @@ package pucp.edu.pe.glp_final.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import pucp.edu.pe.glp_final.models.*;
+import pucp.edu.pe.glp_final.models.enums.TipoIncidente;
 import pucp.edu.pe.glp_final.repository.AveriaProgramadaRepository;
 import pucp.edu.pe.glp_final.repository.AveriaGeneradaRepository;
 import java.time.LocalDateTime;
@@ -22,6 +23,7 @@ public class AveriaProgramadaService {
      * Genera averías probabilísticamente basadas en averías programadas
      */
     public List<Averia> generarAveriasProbabilisticas(
+            Long simulacionId,
             LocalDateTime fechaBaseSimulacion,
             int turnoActual,
             List<Camion> camionesEnOperacion,
@@ -62,7 +64,7 @@ public class AveriaProgramadaService {
                     averiasGeneradas.add(averia);
 
                     // Guardar en base de datos
-                    guardarAveriaGenerada(fechaBaseSimulacion, averia, momento, porcentajeRecorrido);
+                    guardarAveriaGenerada(simulacionId, fechaBaseSimulacion, averia, momento, porcentajeRecorrido);
                 }
             }
         }
@@ -103,15 +105,42 @@ public class AveriaProgramadaService {
     /**
      * Guarda la avería generada en la base de datos
      */
-    private void guardarAveriaGenerada(LocalDateTime fechaBase, Averia averia, double momento, double porcentaje) {
+    private void guardarAveriaGenerada(Long simulacionId, LocalDateTime fechaBase, Averia averia, double momento, double porcentaje) {
         AveriaGenerada averiaGenerada = new AveriaGenerada();
+        averiaGenerada.setSimulacionId(simulacionId);
         averiaGenerada.setFechaBaseSimulacion(fechaBase);
         averiaGenerada.setCodigoCamion(averia.getCodigoCamion());
         averiaGenerada.setTipoAveria(averia.getTipoAveria());
         averiaGenerada.setTurnoAveria(averia.getTurnoAveria());
         averiaGenerada.setMomentoGeneracion(momento);
-        averiaGenerada.setPorcentajeRecorrido(porcentaje);
-        averiaGenerada.setDescripcion(averia.getDescripcion());
+        averiaGenerada.setPorcentajeRecorrido(porcentaje); // > 0.0 indica que es automática
+        averiaGenerada.setDescripcion("Avería automática - " + averia.getDescripcion());
+        averiaGenerada.setCreatedAt(LocalDateTime.now());
+
+        averiaGeneradaRepository.save(averiaGenerada);
+    }
+
+    /**
+     * Guarda una avería manual generada desde la plataforma
+     */
+    public void guardarAveriaManual(
+            Long simulacionId,
+            LocalDateTime fechaBaseSimulacion,
+            String codigoCamion,
+            TipoIncidente tipoAveria,
+            int turnoAveria,
+            String descripcion,
+            double momentoGeneracion
+    ) {
+        AveriaGenerada averiaGenerada = new AveriaGenerada();
+        averiaGenerada.setSimulacionId(simulacionId);
+        averiaGenerada.setFechaBaseSimulacion(fechaBaseSimulacion);
+        averiaGenerada.setCodigoCamion(codigoCamion);
+        averiaGenerada.setTipoAveria(tipoAveria);
+        averiaGenerada.setTurnoAveria(turnoAveria);
+        averiaGenerada.setMomentoGeneracion(momentoGeneracion);
+        averiaGenerada.setPorcentajeRecorrido(0.0); // 0.0 indica que es manual
+        averiaGenerada.setDescripcion(descripcion);
         averiaGenerada.setCreatedAt(LocalDateTime.now());
 
         averiaGeneradaRepository.save(averiaGenerada);
@@ -120,7 +149,7 @@ public class AveriaProgramadaService {
     /**
      * Obtiene averías generadas por simulación
      */
-    public List<AveriaGenerada> obtenerAveriasPorSimulacion(LocalDateTime fechaBase) {
-        return averiaGeneradaRepository.findByFechaBaseSimulacion(fechaBase);
+    public List<AveriaGenerada> obtenerAveriasPorSimulacion(Long simulacionId) {
+        return averiaGeneradaRepository.findBySimulacionIdOrderByMomentoGeneracionDesc(simulacionId);
     }
 }

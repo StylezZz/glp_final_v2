@@ -66,6 +66,9 @@ public class GeneticoController {
 
         Map<String, String> response = new HashMap<>();
         response.put("mensaje", "Algoritmo de planificación inicializado para la fecha " + fechaBaseSimulacion);
+        response.put("simulacionId", String.valueOf(aco.getId()));
+        response.put("fechaBase", fechaBaseSimulacion.toString());
+        response.put("tipoSimulacion", String.valueOf(tipoSimulacion));
         return ResponseEntity.ok(response);
     }
 
@@ -96,7 +99,7 @@ public class GeneticoController {
             }
         }
 
-        gestionarAverias(averias, timer);
+        gestionarAverias(averias, new ArrayList<>(), timer);
         gestionarPedidos(anioAjustado, mesAjustado, timer, minutosPorIteracion, diaAjustado, hora, minuto);
         primeraEjecucionDia = 1;
         return ResponseEntity.ok(aco.getCamiones());
@@ -171,9 +174,9 @@ public class GeneticoController {
             }
         }
 
-        /*---*/
         int turnoActual = calcularTurnoActual(hora);
         List<Averia> averiasProgramadas = averiaProgramadaService.generarAveriasProbabilisticas(
+                aco.getId(),
                 aco.getFechaBaseSimulacion(),
                 turnoActual,
                 camiones,
@@ -185,10 +188,8 @@ public class GeneticoController {
         for (Averia averia : todasLasAverias) {
             System.out.println("Averia: " + averia.getCodigoCamion() + " - Tipo: " + averia.getTipoAveria() + " - Turno: " + averia.getTurnoAveria());
         }
-        /*---*/
 
-//        gestionarAverias(averias, timer);
-        gestionarAverias(todasLasAverias, timer);
+        gestionarAverias(todasLasAverias, averias, timer);
 
         if (primeraEjecucionSemanal == 0) {
             pedidos = simulacionController.getPedidos();
@@ -221,19 +222,6 @@ public class GeneticoController {
 
     private int getDaysInMonth(int year, int month) {
         return java.time.YearMonth.of(year, month).lengthOfMonth();
-    }
-
-    @GetMapping("/averias-generadas")
-    @ResponseBody
-    public ResponseEntity<List<AveriaGenerada>> obtenerAveriasGeneradas() {
-        if (aco == null || aco.getFechaBaseSimulacion() == null) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        List<AveriaGenerada> averias = averiaProgramadaService.obtenerAveriasPorSimulacion(
-                aco.getFechaBaseSimulacion()
-        );
-        return ResponseEntity.ok(averias);
     }
 
     @GetMapping("/bloqueos")
@@ -309,7 +297,23 @@ public class GeneticoController {
         }
     }
 
-    public void gestionarAverias(List<Averia> averias, double momento) {
+    public void gestionarAverias(List<Averia> averias, List<Averia> averiasManuales, double momento) {
+        for (Averia averia : averiasManuales) {
+            // Para registrar averias desde front
+            if (aco != null && aco.getFechaBaseSimulacion() != null) {
+                averiaProgramadaService.guardarAveriaManual(
+                        aco.getId(),
+                        aco.getFechaBaseSimulacion(),
+                        averia.getCodigoCamion(),
+                        averia.getTipoAveria(),
+                        averia.getTurnoAveria(),
+                        "Avería manual desde plataforma - " + averia.getTipoAveria() +
+                                " (" + averia.getDescripcion() + ")",
+                        momento
+                );
+            }
+        }
+
         for (Averia averia : averias) {
             for (Camion vehiculo : camiones) {
                 if (averia.getCodigoCamion().equals(vehiculo.getCodigo())) {
@@ -317,12 +321,10 @@ public class GeneticoController {
                     vehiculo.setEnAveria(true);
                     vehiculo.setTiempoInicioAveria(momento);
                     if (averia.getTipoAveria() == TipoIncidente.LEVE) {
-
                         vehiculo.setTipoAveria(1);
                         vehiculo.setDetenido(true);
                         vehiculo.setTiempoDetenido(vehiculo.getTiempoInicioAveria() + 120);
                         vehiculo.setTiempoFinAveria(vehiculo.getTiempoInicioAveria() + 120);
-
                     } else {
                         if (averia.getTipoAveria() == TipoIncidente.MODERADO) {
                             vehiculo.setTipoAveria(2);
@@ -375,5 +377,20 @@ public class GeneticoController {
             return 3;
         }
     }
+
+    @GetMapping("/averias-generadas")
+    @ResponseBody
+    public ResponseEntity<List<AveriaGenerada>> obtenerAveriasGeneradas(
+            @RequestParam(required = false) Long simulacionId
+    ) {
+        try {
+            List<AveriaGenerada> averias = averiaProgramadaService.obtenerAveriasPorSimulacion(simulacionId);
+            return ResponseEntity.ok(averias);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ArrayList<>());
+        }
+    }
+
 }
 
