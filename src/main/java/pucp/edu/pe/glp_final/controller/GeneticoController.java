@@ -20,11 +20,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.http.HttpStatus;
 import pucp.edu.pe.glp_final.algorithm.Genetico;
 import pucp.edu.pe.glp_final.algorithm.NodoMapa;
-import pucp.edu.pe.glp_final.models.Averia;
-import pucp.edu.pe.glp_final.models.Bloqueo;
-import pucp.edu.pe.glp_final.models.Camion;
-import pucp.edu.pe.glp_final.models.Pedido;
+import pucp.edu.pe.glp_final.models.*;
 import pucp.edu.pe.glp_final.models.enums.TipoIncidente;
+import pucp.edu.pe.glp_final.service.AveriaProgramadaService;
 import pucp.edu.pe.glp_final.service.CamionService;
 import pucp.edu.pe.glp_final.service.PedidoService;
 
@@ -47,6 +45,9 @@ public class GeneticoController {
 
     @Autowired
     private SimulacionController simulacionController;
+
+    @Autowired
+    private AveriaProgramadaService averiaProgramadaService;
 
     @PostMapping("/inicializar")
     @ResponseBody
@@ -149,6 +150,8 @@ public class GeneticoController {
             @RequestParam(required = false) int minutosPorIteracion,
             @RequestBody(required = false) List<Averia> averias
     ) {
+        System.out.println("Ejecutando semanal con timer: " + timer);
+
         if (averias == null) averias = new ArrayList<>();
 
         int dia = ((int) timer / 1440);
@@ -168,7 +171,24 @@ public class GeneticoController {
             }
         }
 
-        gestionarAverias(averias, timer);
+        /*---*/
+        int turnoActual = calcularTurnoActual(hora);
+        List<Averia> averiasProgramadas = averiaProgramadaService.generarAveriasProbabilisticas(
+                aco.getFechaBaseSimulacion(),
+                turnoActual,
+                camiones,
+                timer
+        );
+        List<Averia> todasLasAverias = new ArrayList<>(averias);
+        todasLasAverias.addAll(averiasProgramadas);
+        System.out.println("Averias a generar: " + todasLasAverias.size());
+        for (Averia averia : todasLasAverias) {
+            System.out.println("Averia: " + averia.getCodigoCamion() + " - Tipo: " + averia.getTipoAveria() + " - Turno: " + averia.getTurnoAveria());
+        }
+        /*---*/
+
+//        gestionarAverias(averias, timer);
+        gestionarAverias(todasLasAverias, timer);
 
         if (primeraEjecucionSemanal == 0) {
             pedidos = simulacionController.getPedidos();
@@ -201,6 +221,19 @@ public class GeneticoController {
 
     private int getDaysInMonth(int year, int month) {
         return java.time.YearMonth.of(year, month).lengthOfMonth();
+    }
+
+    @GetMapping("/averias-generadas")
+    @ResponseBody
+    public ResponseEntity<List<AveriaGenerada>> obtenerAveriasGeneradas() {
+        if (aco == null || aco.getFechaBaseSimulacion() == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        List<AveriaGenerada> averias = averiaProgramadaService.obtenerAveriasPorSimulacion(
+                aco.getFechaBaseSimulacion()
+        );
+        return ResponseEntity.ok(averias);
     }
 
     @GetMapping("/bloqueos")
@@ -333,4 +366,14 @@ public class GeneticoController {
         return ResponseEntity.ok(camiones);
     }
 
+    private int calcularTurnoActual(int hora) {
+        if (hora >= 0 && hora < 8) {
+            return 1;
+        } else if (hora >= 8 && hora < 16) {
+            return 2;
+        } else {
+            return 3;
+        }
+    }
 }
+
