@@ -2,6 +2,7 @@ package pucp.edu.pe.glp_final.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import pucp.edu.pe.glp_final.algorithm.NodoMapa;
 import pucp.edu.pe.glp_final.models.*;
 import pucp.edu.pe.glp_final.models.enums.TipoIncidente;
 import pucp.edu.pe.glp_final.repository.AveriaProgramadaRepository;
@@ -39,6 +40,7 @@ public class AveriaProgramadaService {
                     .filter(c -> c.getCodigo().equals(averiaProgramada.getCodigoCamion()))
                     .filter(c -> !c.isEnAveria()) // No está en avería
                     .filter(c -> c.getRoute() != null && !c.getRoute().isEmpty()) // Tiene ruta
+                    .filter(c -> estaEjecutandoRuta(c, momento))
                     .findFirst()
                     .orElse(null);
 
@@ -70,6 +72,22 @@ public class AveriaProgramadaService {
         }
 
         return averiasGeneradas;
+    }
+
+    private boolean estaEnAlmacen(Camion camion) {
+        if (camion.getUbicacionActual() == null) {
+            return true; // Si no tiene ubicación, asumimos que está en almacén
+        }
+
+        int x = camion.getUbicacionActual().getX();
+        int y = camion.getUbicacionActual().getY();
+
+        // ✅ Posiciones de almacenes (deben coincidir con las del frontend)
+        boolean estaEnAlmacenCentral = (x == 12 && y == 8);
+        boolean estaEnAlmacenEste = (x == 63 && y == 3);
+        boolean estaEnAlmacenNorte = (x == 42 && y == 42);
+
+        return estaEnAlmacenCentral || estaEnAlmacenEste || estaEnAlmacenNorte;
     }
 
     /**
@@ -152,4 +170,39 @@ public class AveriaProgramadaService {
     public List<AveriaGenerada> obtenerAveriasPorSimulacion(Long simulacionId) {
         return averiaGeneradaRepository.findBySimulacionIdOrderByMomentoGeneracionDesc(simulacionId);
     }
+
+    private boolean estaEjecutandoRuta(Camion camion, double timerActual) {
+        if (camion.getRoute() == null || camion.getRoute().isEmpty()) {
+            return false;
+        }
+
+        // ✅ VERIFICACIÓN 1: Temporal - debe estar dentro del rango de tiempo de la ruta
+        double tiempoInicioRuta = camion.getRoute().get(0).getTiempoInicio();
+        double tiempoFinRuta = camion.getRoute().get(camion.getRoute().size() - 1).getTiempoFin();
+
+        boolean dentroDelRangoTemporal = timerActual >= tiempoInicioRuta && timerActual <= tiempoFinRuta;
+
+        if (!dentroDelRangoTemporal) {
+            return false; // Fuera del rango temporal de la ruta
+        }
+
+        // ✅ VERIFICACIÓN 2: Progreso - debe tener al menos un nodo en progreso
+        for (NodoMapa nodo : camion.getRoute()) {
+            boolean nodoEmpezado = timerActual >= nodo.getTiempoInicio();
+            boolean nodoNoTerminado = timerActual < nodo.getTiempoFin();
+
+            if (nodoEmpezado && nodoNoTerminado) {
+                System.out.println("✅ Camión " + camion.getCodigo() + " ejecutando nodo en tiempo " +
+                        timerActual + " (nodo: " + nodo.getTiempoInicio() + "-" + nodo.getTiempoFin() + ")");
+                return true; // Hay un nodo actualmente en ejecución
+            }
+        }
+
+        // ✅ VERIFICACIÓN 3: Si no hay nodo en progreso, verificar que ya empezó pero no terminó
+        boolean yaEmpezó = timerActual > tiempoInicioRuta + 2; // Al menos 2 minutos después de empezar
+        boolean noTerminó = timerActual < tiempoFinRuta - 2; // Al menos 2 minutos antes de terminar
+
+        return yaEmpezó && noTerminó;
+    }
+
 }
