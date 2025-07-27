@@ -177,7 +177,7 @@ public class Genetico {
                                 if (ubicacion.getMes() <= mes && ubicacion.getAnio() <= anio) {
                                     ubicacion.getPedido().setEntregado(false);
                                     ubicacion.getPedido().setAsignado(false);
-                                    ubicacion.getPedido().setIdCamion(null);
+                                    //ubicacion.getPedido().setIdCamion(null);
                                 }
                             }
                             if (ubicacion.isEsAlmacen()) {
@@ -216,7 +216,7 @@ public class Genetico {
                             if (ubicacion.isEsPedido()) {
                                 ubicacion.getPedido().setEntregado(false);
                                 ubicacion.getPedido().setAsignado(false);
-                                ubicacion.getPedido().setIdCamion(null);
+                                //ubicacion.getPedido().setIdCamion(null);
                             }
                             if (ubicacion.isEsAlmacen()) {
                                 if ((int) ubicacion.getTiempoInicio() > startTime) { // ACA

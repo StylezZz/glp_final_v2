@@ -122,6 +122,11 @@ public class GeneticoController {
                 timer,
                 1
         );
+        if (!pedidosSimulacion.isEmpty()) {
+            Pedido p = pedidosSimulacion.get(0);
+            System.out.println("DEBUG idCamion en memoria: " +
+                    p.getId() + " → " + p.getIdCamion());
+        }
         for (Camion vehiculo : camiones) {
             if (!vehiculo.getRoute().isEmpty()) {
                 for (NodoMapa ubicacion : vehiculo.getRoute()) {
@@ -243,16 +248,8 @@ public class GeneticoController {
     }
 
     @GetMapping("/pedidos")
-    @ResponseBody
-    public ResponseEntity<List<Pedido>> obtenerPedidosCompletos() {
-        int i = 0;
-        for (Pedido pedido : aco.getPedidosCompletos()) {
-            if (pedido.isEntregado()) {
-                i++;
-            }
-        }
-        System.out.println("Pedidos entregados: " + i + "/" + aco.getPedidosCompletos().size());
-        return ResponseEntity.ok(aco.getPedidosCompletos());
+    public ResponseEntity<List<Pedido>> obtenerPedidosAsignados() {
+        return ResponseEntity.ok(pedidosSimulacion);   // <- lista que maneja ACO
     }
 
     @GetMapping("/almacen")
