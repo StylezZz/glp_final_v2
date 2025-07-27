@@ -4,12 +4,12 @@ import java.io.BufferedReader;
 import java.util.ArrayList;
 import java.util.List;
 
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import pucp.edu.pe.glp_final.models.Cliente;
 import pucp.edu.pe.glp_final.models.Pedido;
-import pucp.edu.pe.glp_final.models.enums.TipoCliente;
 import pucp.edu.pe.glp_final.repository.ClientRepository;
 import pucp.edu.pe.glp_final.repository.PedidoRepository;
 
@@ -17,12 +17,12 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class PedidoService {
 
     private List<Pedido> pedidosCarga;
-    private int id = 0;
 
     @Autowired
     private PedidoRepository pedidoRepository;
@@ -42,12 +42,22 @@ public class PedidoService {
         return pedidoRepository.save(pedido);
     }
 
-    public long contarPedidosTotales() {
-        return pedidoRepository.count();
-    }
-
     public List<Pedido> obtenerPedidosPorFecha(List<Integer> dias, Integer anio, Integer mes_pedido) {
         return pedidoRepository.findByDiaInAndAnioAndMesPedidoOrderById(dias, anio, mes_pedido);
+    }
+
+    public List<String> getMesesPedido() {
+        return pedidoRepository.getMesesPedido();
+    }
+
+    @Transactional
+    public void reiniciarPedidos(List<Pedido> pedidos) {
+        if (pedidos != null && !pedidos.isEmpty()) {
+            List<Integer> ids = pedidos.stream()
+                    .map(Pedido::getId)
+                    .collect(Collectors.toList());
+            pedidoRepository.reiniciarPedidosPorIds(ids);
+        }
     }
 
     public List<Pedido> findByFechaPedidoBetween(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
@@ -62,10 +72,16 @@ public class PedidoService {
         pedidoRepository.deleteAll();
     }
 
-    public List<Pedido> savePedidosArchivo(MultipartFile file) {
-        String nameFile = file.getOriginalFilename();
-        String anio = nameFile.substring(6, 10);
-        String mes = nameFile.substring(10, 12);
+    public List<Pedido> cargarArchivo(MultipartFile file) {
+        String filename = file.getOriginalFilename();
+        assert filename != null;
+
+        String anio = filename.substring(6, 10);
+        String mes = filename.substring(10, 12);
+        if (anio.isBlank() || mes.isBlank()) {
+            throw new IllegalArgumentException("El nombre del archivo debe contener el año y mes en el formato correcto.");
+        }
+
         List<Pedido> pedidos = new ArrayList<>();
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()));
@@ -73,7 +89,6 @@ public class PedidoService {
             while ((registro = reader.readLine()) != null && !registro.isBlank()) {
                 Pedido pedido = Pedido.leerRegistro(registro, Integer.parseInt(anio), Integer.parseInt(mes), 0);
 
-                //La cagamos si no hay cliente ps, piensa ps chaNCHO
                 Optional<Cliente> clienteOptional = clientRepository.findById(pedido.getIdCliente());
                 Cliente cliente;
                 if (!clienteOptional.isPresent()) {
@@ -81,8 +96,6 @@ public class PedidoService {
                     cliente.setId(pedido.getIdCliente());
                     cliente.setNombre("Cliente " + pedido.getIdCliente());
                     cliente.setCorreo("cliente" + pedido.getIdCliente() + "@glplogistics.com.pe");
-                    cliente.setTelefono(987654321);
-                    cliente.setTipo(TipoCliente.CONDOMINIOS);
                     clientRepository.save(cliente);
                 } else cliente = clienteOptional.get();
 
@@ -115,7 +128,7 @@ public class PedidoService {
             for (Pedido pedido : pedidos) {
                 int demanda = pedido.getCantidadGLP();
                 while (demanda > 25) {
-                    int cantidad = Math.min(demanda, 5); // Divide en pedidos de 5 o menos
+                    int cantidad = Math.min(demanda, 5);
                     Pedido pedido1 = new Pedido(pedido.getDia(), pedido.getHora(), pedido.getMinuto(),
                             pedido.getAnio(),
                             pedido.getMesPedido(), pedido.getPosX(), pedido.getPosY(), pedido.getIdCliente(), cantidad,
@@ -150,29 +163,5 @@ public class PedidoService {
 
     }
 
-    public List<Pedido> procesarArchivo(MultipartFile file) {
-        List<Pedido> pedidos = new ArrayList<>();
 
-        String nombreArchivo = file.getOriginalFilename();
-        String yearString = nombreArchivo.substring(6, 10);
-        String monthString = nombreArchivo.substring(10, 12);
-        int anio = Integer.parseInt(yearString);
-        int mes = Integer.parseInt(monthString);
-
-        try (BufferedReader br = new BufferedReader(
-                new InputStreamReader(file.getInputStream()))) {
-            String linea;
-            while ((linea = br.readLine()) != null) {
-                Pedido pedido = Pedido.leerRegistro(linea, anio, mes, id++);
-                pedidos.add(pedido);
-            }
-            return pedidos;
-        } catch (IOException e) {
-            throw new RuntimeException("Error al procesar el archivo: " + e.getMessage());
-        }
-    }
-
-    public List<String> getMesesPedido() {
-        return pedidoRepository.getMesesPedido();
-    }
 }

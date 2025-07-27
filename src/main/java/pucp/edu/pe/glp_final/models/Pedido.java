@@ -59,12 +59,19 @@ public class Pedido {
     @JoinColumn(name = "cliente_id")
     private Cliente cliente;
 
-    public void setCantidadGLPAsignada(int cantidadGLPAsignada) {
-        this.cantidadGLPAsignada += cantidadGLPAsignada;
-    }
-
-    public Pedido(int dia, int hora, int minuto, int anio, int mes, int posX, int posY, String idCliente,
-                  int cantidadGLP, int horasLimite, boolean entregado) {
+    public Pedido(
+            int dia,
+            int hora,
+            int minuto,
+            int anio,
+            int mes,
+            int posX,
+            int posY,
+            String idCliente,
+            int cantidadGLP,
+            int horasLimite,
+            boolean entregado
+    ) {
         this.dia = dia;
         this.hora = hora;
         this.minuto = minuto;
@@ -86,30 +93,33 @@ public class Pedido {
         this.fecDia = LocalDateTime.now();
     }
 
+    public void setCantidadGLPAsignada(int cantidadGLPAsignada) {
+        this.cantidadGLPAsignada += cantidadGLPAsignada;
+    }
+
     public static Pedido leerRegistro(String registro, int anio, int mes, int id) {
 
         Pedido pedido = new Pedido();
         pedido.setAnio(anio);
         pedido.setMesPedido(mes);
-        String[] partes = registro.split(":");
 
-        if (partes.length != 2) {
-            throw new IllegalArgumentException("Formato de registro incorrecto: " + registro);
+        String[] datos = registro.split(":");
+
+        if (datos.length != 2) {
+            throw new IllegalArgumentException("Registro mal formado");
         }
 
-        String[] tiempo = partes[0].split("[dhm]");
-        if (tiempo.length != 3) {
-            throw new IllegalArgumentException("Formato de tiempo incorrecto: " + partes[0]);
-        }
+        String[] tiempo = datos[0].split("[dhm]");
+        if (tiempo.length != 3)
+            throw new IllegalArgumentException("Tiempo mal formado");
 
         pedido.setDia(Integer.parseInt(tiempo[0]));
         pedido.setHora(Integer.parseInt(tiempo[1]));
         pedido.setMinuto(Integer.parseInt(tiempo[2]));
 
-        String[] ubicacion = partes[1].split(",");
-        if (ubicacion.length != 5) {
-            throw new IllegalArgumentException("Formato de ubicación incorrecto: " + partes[1]);
-        }
+        String[] ubicacion = datos[1].split(",");
+        if (ubicacion.length != 5)
+            throw new IllegalArgumentException("Ubicación mal formada");
 
         pedido.setPosX(Integer.parseInt(ubicacion[0]));
         pedido.setPosY(Integer.parseInt(ubicacion[1]));
@@ -127,7 +137,7 @@ public class Pedido {
         LocalDateTime fechaEntrega = fechaDeRegistro.plusHours(pedido.getHorasLimite());
         pedido.setFechaDeRegistro(fechaDeRegistro);
         pedido.setFechaEntrega(fechaEntrega);
-        pedido.setTiempoRegistroStr(partes[0]);
+        pedido.setTiempoRegistroStr(datos[0]);
 
         return pedido;
     }

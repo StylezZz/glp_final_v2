@@ -10,10 +10,10 @@ import pucp.edu.pe.glp_final.models.Bloqueo;
 
 @Repository
 public interface BloqueoRepository extends JpaRepository<Bloqueo, Integer> {
-    @Query("SELECT DISTINCT b FROM Bloqueo b LEFT JOIN FETCH b.tramo WHERE b.anio = :anio AND b.mes = :mes")
+    @Query("SELECT DISTINCT b FROM Bloqueo b LEFT JOIN FETCH b.tramo WHERE b.anio = :anio AND b.mes IN (:mes, :mes + 1)")
     List<Bloqueo> findByAnioAndMesWithTramos(@Param("anio") int anio, @Param("mes") int mes);
 
-    @Query("SELECT DISTINCT CONCAT('Pedidos de ', CASE b.mes " +
+    @Query("SELECT DISTINCT CONCAT('Bloqueos de ', CASE b.mes " +
             "WHEN 1 THEN 'enero' " +
             "WHEN 2 THEN 'febrero' " +
             "WHEN 3 THEN 'marzo' " +

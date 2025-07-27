@@ -35,11 +35,4 @@ public class SimulacionService {
         if (simulacion != null) simulacion.parar();
     }
 
-    public int obtenerVelocidad() {
-        return simulacion.getMinutosPorIteracion();
-    }
-
-    public void configurarVelocidad(int minutosPorIteracion) {
-        if (simulacion != null) simulacion.setMinutosPorIteracion(minutosPorIteracion);
-    }
 }

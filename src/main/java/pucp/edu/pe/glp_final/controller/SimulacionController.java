@@ -90,6 +90,15 @@ public class SimulacionController {
         return ResponseEntity.ok(pedidosOrdenados);
     }
 
+//    private cargaPedidosSemanal(int anio, int mes, int dia, int hora, int minuto) {
+//        List<Pedido> pedidosTotales = pedidoService.obtenerTodos();
+//        this.pedidos = pedidoService.getPedidosSemana(pedidosTotales, dia, mes, anio, hora, minuto);
+//        List<Pedido> pedidosOrdenados = this.pedidos.stream()
+//                .sorted((p1, p2) -> Integer.compare(p1.getId(), p2.getId()))
+//                .toList();
+//        return ResponseEntity.ok(pedidosOrdenados);
+//    }
+
     @GetMapping("/bloqueos/semanal")
     @ResponseBody
     public ResponseEntity<List<Bloqueo>> obtenerBloqueosSemanal(
