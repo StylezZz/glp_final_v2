@@ -32,6 +32,7 @@ public class Genetico {
     private double[][][][] matrizPoblacion;
     private boolean inicio;
     private LocalDateTime fechaBaseSimulacion;
+    private String SIM;
 
     public Genetico(
             List<Camion> camiones,
@@ -45,6 +46,13 @@ public class Genetico {
         this.inicio = true;
         inicializarPoblacion();
         this.fechaBaseSimulacion = fechaBaseSimulacion;
+        if (tipoSimulacion == 1) {
+            this.SIM = "DIA";
+        } else if (tipoSimulacion == 2) {
+            this.SIM = "SEMANA";
+        } else {
+            this.SIM = "COLAPSO";
+        }
 
         // Generamos el id
         this.id = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS).toEpochSecond(java.time.ZoneOffset.UTC);

@@ -250,7 +250,14 @@ public class GeneticoController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("El algoritmo ACO no ha sido inicializado. Llama primero a /api/aco/inicializar.");
         }
-        return ResponseEntity.ok(aco.getMapa().getAlmacenes());
+        ArrayList<Almacen> almacenes = new ArrayList<>(aco.getMapa().getAlmacenes());
+        if (aco.getSIM().equals("DIA")) {
+            almacenes.removeIf(almacen -> almacen.getId() == 2 || almacen.getId() == 3);
+        } else {
+            almacenes.removeIf(almacen -> almacen.getId() == 1);
+        }
+
+        return ResponseEntity.ok(almacenes);
     }
 
     @PostMapping("/reiniciar")
