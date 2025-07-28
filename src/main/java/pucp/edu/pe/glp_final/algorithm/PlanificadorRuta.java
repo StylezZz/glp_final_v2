@@ -1,10 +1,13 @@
 package pucp.edu.pe.glp_final.algorithm;
 
+import org.springframework.cglib.core.Local;
 import pucp.edu.pe.glp_final.models.Bloqueo;
 import pucp.edu.pe.glp_final.models.Camion;
 import pucp.edu.pe.glp_final.models.Pedido;
 import pucp.edu.pe.glp_final.models.Nodo;
 
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 public class PlanificadorRuta {
@@ -16,9 +19,13 @@ public class PlanificadorRuta {
             List<Bloqueo> bloqueos,
             int anio,
             int mes,
+            int dia,
+            int hora,
+            int minuto,
             Camion vehiculo,
             Pedido pedido,
-            int tipoSimulacion
+            int tipoSimulacion,
+            LocalDateTime fechaBaseSimulacion
     ) {
         PriorityQueue<NodoMapa> colaPrioridad = new PriorityQueue<>(
                 Comparator.comparingDouble(n -> n.getCostoTotal()));
@@ -65,7 +72,7 @@ public class PlanificadorRuta {
             } else {
                 actual.setTiempoFin(actual.getTiempoInicio() + 1.2);
             }
-            for (NodoMapa vecino : obtenerNodosVecinos(actual, bloqueos, anio, mes, gridGraph, objetivo, pedido)) {
+            for (NodoMapa vecino : obtenerNodosVecinos(actual, bloqueos, anio, mes, dia, hora, minuto, gridGraph, objetivo, pedido, fechaBaseSimulacion)) {
 
                 if (nodosVisitados.contains(vecino)) continue;
                 double nuevoCosto = costoRealAcumulado.get(actual) + calcularHeuristica(actual, vecino);
@@ -82,7 +89,6 @@ public class PlanificadorRuta {
                 }
             }
         }
-        return;
     }
 
     private void reconstruirCamino(NodoMapa objetivo, Camion vehiculo, Pedido pedido, int anio,
@@ -141,33 +147,77 @@ public class PlanificadorRuta {
         return Math.sqrt(Math.pow(hasta.getX() - desde.getX(), 2) + Math.pow(hasta.getY() - desde.getY(), 2));
     }
 
-    public List<NodoMapa> obtenerNodosVecinos(NodoMapa posicionActual, List<Bloqueo> bloqueos, int anio,
-                                              int mes, Mapa gridGraph, NodoMapa objetivo, Pedido pedido) {
+    public List<NodoMapa> obtenerNodosVecinos(
+            NodoMapa posicionActual,
+            List<Bloqueo> bloqueos,
+            int anio,
+            int mes,
+            int dia,
+            int hora,
+            int minuto,
+            Mapa mapa,
+            NodoMapa objetivo,
+            Pedido pedido,
+            LocalDateTime fechaBaseSimulacion
+    ) {
         List<NodoMapa> vecinos = new ArrayList<>();
         int x = posicionActual.getX();
         int y = posicionActual.getY();
         double arriveTime = posicionActual.getTiempoInicio() + 2.4;
 
+        // ✅ NUEVA LÓGICA: Usar fechaBaseSimulacion si está disponible
         Calendar calendar = Calendar.getInstance();
-        calendar.set(Calendar.YEAR, anio);
-        calendar.set(Calendar.MONTH, mes - 1); // Nota: El mes es 0-based (enero es 0)
-        calendar.set(Calendar.DAY_OF_MONTH, (int) arriveTime / 1440);
-        calendar.set(Calendar.HOUR_OF_DAY, (int) (arriveTime % 1440) / 60);
-        calendar.set(Calendar.MINUTE, (int) arriveTime % 60);
+        if (fechaBaseSimulacion != null) {
+            LocalDateTime fechaEsperada = LocalDateTime.of(anio, mes, dia, hora, minuto);
+            long tiempoEsperado = ChronoUnit.MINUTES.between(fechaBaseSimulacion, fechaEsperada);
 
-        List<Bloqueo> bloqueoFuturo = Bloqueo.bloqueosActivos(bloqueos, calendar);
+            // Si arriveTime está muy lejos de tiempoEsperado, hay problema de escala
+            if (Math.abs(arriveTime - tiempoEsperado) > 1440) { // Más de 1 día de diferencia
+                // Usar tiempo esperado en lugar del arriveTime problemático
+                arriveTime = tiempoEsperado + 2.4;
+            }
+
+            LocalDateTime fechaCalculada = fechaBaseSimulacion.plusMinutes((long) arriveTime);
+            calendar.set(Calendar.YEAR, fechaCalculada.getYear());
+            calendar.set(Calendar.MONTH, fechaCalculada.getMonthValue() - 1);
+            calendar.set(Calendar.DAY_OF_MONTH, fechaCalculada.getDayOfMonth());
+            calendar.set(Calendar.HOUR_OF_DAY, fechaCalculada.getHour());
+            calendar.set(Calendar.MINUTE, fechaCalculada.getMinute());
+        } else {
+            // ✅ FALLBACK al método actual con ajuste de mes
+            int diaCalculado = (int) arriveTime / 1440;
+            int mesAjustado = mes;
+            int anioAjustado = anio;
+
+            while (diaCalculado > getDaysInMonth(anioAjustado, mesAjustado)) {
+                diaCalculado -= getDaysInMonth(anioAjustado, mesAjustado);
+                mesAjustado++;
+                if (mesAjustado > 12) {
+                    mesAjustado = 1;
+                    anioAjustado++;
+                }
+            }
+
+            calendar.set(Calendar.YEAR, anioAjustado);
+            calendar.set(Calendar.MONTH, mesAjustado - 1);
+            calendar.set(Calendar.DAY_OF_MONTH, diaCalculado);
+            calendar.set(Calendar.HOUR_OF_DAY, (int) (arriveTime % 1440) / 60);
+            calendar.set(Calendar.MINUTE, (int) arriveTime % 60);
+        }
+
+        List<Bloqueo> bloqueoFuturo = Bloqueo.obtenerBloqueosActivos(bloqueos, calendar);
         List<Nodo> nodosBloqueados = Bloqueo.NodosBloqueados(bloqueoFuturo);
         if (x > 0 && x <= 70) {
-            vecinos.add(gridGraph.getMapa()[x - 1][y]);
+            vecinos.add(mapa.getMapa()[x - 1][y]);
         }
         if (x >= 0 && x < 70) {
-            vecinos.add(gridGraph.getMapa()[x + 1][y]);
+            vecinos.add(mapa.getMapa()[x + 1][y]);
         }
         if (y > 0 && y <= 50) {
-            vecinos.add(gridGraph.getMapa()[x][y - 1]);
+            vecinos.add(mapa.getMapa()[x][y - 1]);
         }
         if (y >= 0 && y < 50) {
-            vecinos.add(gridGraph.getMapa()[x][y + 1]);
+            vecinos.add(mapa.getMapa()[x][y + 1]);
         }
 
         List<NodoMapa> vecinosItera = new ArrayList<>(vecinos);
@@ -190,5 +240,9 @@ public class PlanificadorRuta {
         }
 
         return vecinos;
+    }
+
+    private int getDaysInMonth(int year, int month) {
+        return java.time.YearMonth.of(year, month).lengthOfMonth();
     }
 }

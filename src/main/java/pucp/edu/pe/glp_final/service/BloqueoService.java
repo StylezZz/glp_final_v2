@@ -21,17 +21,20 @@ public class BloqueoService {
     @Autowired
     private BloqueoRepository bloqueoRepository;
 
-    public List<Bloqueo> saveBloqueoArchivo(MultipartFile file) {
-        String nameFile = file.getOriginalFilename();
-        String anio = nameFile.substring(0, 4);
-        String mes = nameFile.substring(4, 6);
+    public List<Bloqueo> cargarArchivo(MultipartFile file) {
+        String filename = file.getOriginalFilename();
+
+        assert filename != null;
+        String anio = filename.substring(0, 4);
+        String mes = filename.substring(4, 6);
+
         List<Bloqueo> bloqueos = new ArrayList<>();
 
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()));
             String registro;
             while ((registro = reader.readLine()) != null && !registro.isBlank()) {
-                Bloqueo bloqueo = Bloqueo.leerBloqueo(registro, Integer.parseInt(anio), Integer.parseInt(mes));
+                Bloqueo bloqueo = Bloqueo.leerRegistro(registro, Integer.parseInt(anio), Integer.parseInt(mes));
                 // Cascade.ALL se encarga de persistir automáticamente los tramos
                 bloqueos.add(bloqueoRepository.save(bloqueo));
             }
@@ -51,8 +54,10 @@ public class BloqueoService {
         LocalDateTime fechaFin = fechaInicio.plusHours(168);
 
         for (Bloqueo bloqueo : bloqueos) {
-            LocalDateTime fechaBloqueo = bloqueo.getFechaInicio();
-            if (!fechaBloqueo.isBefore(fechaInicio) && !fechaBloqueo.isAfter(fechaFin)) {
+            LocalDateTime inicioBloqueo = bloqueo.getFechaInicio();
+            LocalDateTime finBloqueo = bloqueo.getFechaFin();
+
+            if (!inicioBloqueo.isAfter(fechaFin) && !finBloqueo.isBefore(fechaInicio)) {
                 bloqueosSemanal.add(bloqueo);
             }
         }

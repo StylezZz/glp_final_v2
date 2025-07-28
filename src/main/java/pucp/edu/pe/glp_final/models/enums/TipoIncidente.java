@@ -8,11 +8,8 @@ public enum TipoIncidente {
 
     public String value;
 
-    TipoIncidente(String value){
+    TipoIncidente(String value) {
         this.value = value;
     }
 
-    public String getValue(){
-        return value;
-    }
 }
