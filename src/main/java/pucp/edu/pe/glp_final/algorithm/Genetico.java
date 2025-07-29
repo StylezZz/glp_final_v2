@@ -228,9 +228,14 @@ public class Genetico {
 
                         } else {
                             if (ubicacion.isEsPedido()) {
-                                ubicacion.getPedido().setEntregado(false);
-                                ubicacion.getPedido().setAsignado(false);
-                                ubicacion.getPedido().setIdCamion(null);
+                                LocalDateTime fechaActual = LocalDateTime.of(anio,mes,
+                                        ((int)timer/1440),(((int)timer%1440)/60),((int)timer%60));
+                                LocalDateTime fechaLimite = ubicacion.getPedido().getFechaEntrega();
+                                if(fechaActual.isAfter(fechaLimite)){
+                                    ubicacion.getPedido().setEntregado(false);
+                                    ubicacion.getPedido().setAsignado(false);
+                                    ubicacion.getPedido().setIdCamion(null);
+                                }
                             }
                             if (ubicacion.isEsAlmacen()) {
                                 if ((int) ubicacion.getTiempoInicio() > startTime) { // ACA
@@ -519,8 +524,12 @@ public class Genetico {
 
             while (iterator.hasNext()) {
                 Pedido pedido = iterator.next();
-                if (pedido.isEntregado()) {
+                if (pedido.isEntregado() && pedido.isEntregadoCompleto()) {
                     iterator.remove();
+                }else if (pedido.isEntregado() && !pedido.isEntregadoCompleto()){
+                    pedido.setEntregado(false);
+                    pedido.setAsignado(false);
+                    pedido.setIdCamion(null);
                 }
             }
         }

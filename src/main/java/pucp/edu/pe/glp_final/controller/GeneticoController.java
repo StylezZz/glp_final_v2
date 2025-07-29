@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -190,30 +191,37 @@ public class GeneticoController {
         }
 
         gestionarAverias(todasLasAverias, averias, timer);
+        List<Bloqueo> bloqueos = simulacionController.getBloqueos();
 
         if (primeraEjecucionSemanal == 0) {
             pedidos = simulacionController.getPedidos();
             pedidosSimulacion = pedidoService.dividirPedidos(pedidos, 2);
-            List<Bloqueo> bloqueos = simulacionController.getBloqueos();
-            aco.simulacionRuteo(
-                    anioAjustado,
-                    mesAjustado,
-                    diaAjustado,
-                    hora,
-                    minuto,
-                    minutosPorIteracion,
-                    pedidosSimulacion,
-                    bloqueos,
-                    pedidos,
-                    primeraEjecucionSemanal,
-                    timer,
-                    2
-            );
+            //List<Bloqueo> bloqueos = simulacionController.getBloqueos();
+
         } else {
-            List<Bloqueo> bloqueos = simulacionController.getBloqueos();
-            aco.simulacionRuteo(anioAjustado, mesAjustado, diaAjustado, hora, minuto, minutosPorIteracion,
-                    pedidosSimulacion, bloqueos, pedidos, primeraEjecucionSemanal, timer, 2);
+            List<Pedido> pedidosActualizados = simulacionController.getPedidos();
+            //List<Bloqueo> bloqueos = simulacionController.getBloqueos();
+            pedidos = pedidosActualizados.stream()
+                            .filter(p->!p.isEntregadoCompleto())
+                                    .collect(Collectors.toList());
+            //aco.simulacionRuteo(anioAjustado, mesAjustado, diaAjustado, hora, minuto, minutosPorIteracion,
+            //        pedidosSimulacion, bloqueos, pedidos, primeraEjecucionSemanal, timer, 2);
+            pedidosSimulacion = pedidoService.dividirPedidos(pedidos,2);
         }
+        aco.simulacionRuteo(
+                anioAjustado,
+                mesAjustado,
+                diaAjustado,
+                hora,
+                minuto,
+                minutosPorIteracion,
+                pedidosSimulacion,
+                bloqueos,
+                pedidos,
+                primeraEjecucionSemanal,
+                timer,
+                2
+        );
 
         primeraEjecucionSemanal = 1;
         return ResponseEntity.ok(aco.getCamiones());
