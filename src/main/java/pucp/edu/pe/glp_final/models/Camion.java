@@ -88,7 +88,13 @@ public class Camion {
     }
 
     public boolean tieneCapacidad(int demanda) {
-        return ((cargaAsignada + demanda <= glpDisponible));
+        boolean result = ((cargaAsignada + demanda <= glpDisponible));
+        System.out.println("    [CAPACIDAD] Camión " + codigo +
+                " - Carga asignada: " + cargaAsignada +
+                ", Demanda: " + demanda +
+                ", GLP disponible: " + glpDisponible +
+                ", Tiene capacidad: " + result);
+        return result;
     }
 
     public void posicionar(NodoMapa node) {
