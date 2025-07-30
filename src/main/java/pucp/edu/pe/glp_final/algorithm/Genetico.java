@@ -3,11 +3,8 @@ package pucp.edu.pe.glp_final.algorithm;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 import pucp.edu.pe.glp_final.models.*;
@@ -73,7 +70,23 @@ public class Genetico {
             double momento,
             int tipoSimulacion
     ) {
+        System.out.println("\n+++ SIMULACION RUTEO START +++");
+        System.out.println("Parámetros:");
+        System.out.println("  - Fecha: " + anio + "-" + mes + "-" + dia + " " + hora + ":" + minuto);
+        System.out.println("  - MinutosPorIteracion: " + minutosPorIteracion);
+        System.out.println("  - PedidosDia: " + pedidosDia.size());
+        System.out.println("  - Bloqueos: " + bloqueos.size());
+        System.out.println("  - PedidoOriginal: " + pedidoOriginal.size());
+        System.out.println("  - PrimeraVez: " + primeraVez);
+        System.out.println("  - Momento: " + momento);
+        System.out.println("  - TipoSimulacion: " + tipoSimulacion);
+
         getPedidosDia(anio, mes, dia, hora, minuto, pedidosDia, minutosPorIteracion, pedidoOriginal, tipoSimulacion);
+
+        System.out.println("Después de getPedidosDia:");
+        System.out.println("  - this.pedidos.size(): " + this.pedidos.size());
+        System.out.println("  - this.pedidosCompletos.size(): " + this.pedidosCompletos.size());
+
         Calendar calendar = Calendar.getInstance();
         calendar.set(Calendar.YEAR, anio);
         calendar.set(Calendar.MONTH, mes - 1);
@@ -82,9 +95,14 @@ public class Genetico {
         calendar.set(Calendar.MINUTE, minuto);
 
         bloqueosActivos = Bloqueo.obtenerBloqueosActivos(bloqueos, calendar);
+
+        System.out.println("Llamando a ejecutar...");
         ejecutar(anio, mes, dia, hora, minuto, bloqueos, primeraVez, momento, tipoSimulacion);
+
+        System.out.println("Después de ejecutar, llamando a validarTiempoRuta...");
         validarTiempoRuta(anio, mes, dia, hora, minuto, minutosPorIteracion, tipoSimulacion);
 
+        System.out.println("+++ SIMULACION RUTEO END +++\n");
         return camiones;
     }
 
@@ -421,6 +439,27 @@ public class Genetico {
             double timer,
             int tipoSimulacion
     ) {
+        System.out.println("=== EJECUTAR START ===");
+        System.out.println("Timer: " + timer + ", TipoSim: " + tipoSimulacion + ", PrimeraVez: " + primeraVez);
+        System.out.println("Fecha actual: " + anio + "-" + mes + "-" + dia + " " + hora + ":" + minuto);
+        System.out.println("Total pedidos disponibles: " + pedidos.size());
+        // Log current truck assignments
+        for (Camion camion : camiones) {
+            System.out.println("Camión " + camion.getCodigo() + ":");
+            System.out.println("  - En avería: " + camion.isEnAveria());
+            System.out.println("  - Ubicación actual: " + (camion.getUbicacionActual() != null ?
+                    camion.getUbicacionActual().getX() + "," + camion.getUbicacionActual().getY() : "null"));
+            System.out.println("  - Pedidos asignados: " + (camion.getPedidosAsignados() != null ?
+                    camion.getPedidosAsignados().size() : "null"));
+            if (camion.getPedidosAsignados() != null) {
+                for (Pedido p : camion.getPedidosAsignados()) {
+                    System.out.println("    * Pedido " + p.getId() + " en " + p.getPosX() + "," + p.getPosY() +
+                            " - Entrega: " + p.getFechaEntrega() + " - Entregado: " + p.isEntregado());
+                }
+            }
+            System.out.println("  - Ruta actual: " + (camion.getRoute() != null ? camion.getRoute().size() + " nodos" : "null"));
+        }
+
         mapa.removerPedidos();
         validarPedidosNoEntregado(anio, mes, hora, minuto, timer, tipoSimulacion);
         entregadosCompletos();
@@ -435,10 +474,51 @@ public class Genetico {
 
         LocalDateTime fechaActual = LocalDateTime.of(anio, mes, dia, hora, minuto);
 
-        Comparator<Pedido> comparadorPorProximidad = Comparator
-                .comparing(pedido -> Duration.between(fechaActual, pedido.getFechaEntrega()).abs());
+        System.out.println("=== ANTES DEL SORTING ===");
+        for (Pedido p : pedidos) {
+            Duration tiempoRestante = Duration.between(fechaActual, p.getFechaEntrega());
+            System.out.println("Pedido " + p.getId() + " en " + p.getPosX() + "," + p.getPosY() +
+                    " - Tiempo restante: " + tiempoRestante.toMinutes() + " min - Entregado: " + p.isEntregado() +
+                    " - Asignado: " + p.isAsignado());
+        }
 
-        pedidos.sort(comparadorPorProximidad);
+//        Comparator<Pedido> comparadorPorProximidad = Comparator
+//                .comparing(pedido -> Duration.between(fechaActual, pedido.getFechaEntrega()).abs());
+//        pedidos.sort(comparadorPorProximidad);
+
+        Comparator<Pedido> comparadorPorUrgencia = Comparator
+                .comparing((Pedido pedido) -> {
+                    Duration tiempoRestante = Duration.between(fechaActual, pedido.getFechaEntrega());
+                    // If delivery time has passed, give maximum priority (negative value)
+                    if (tiempoRestante.isNegative()) {
+                        return tiempoRestante.toMinutes(); // Most negative first
+                    }
+                    // Otherwise, sort by time remaining (ascending - less time remaining = higher priority)
+                    return tiempoRestante.toMinutes();
+                })
+                .thenComparing(pedido -> pedido.getPriodidad()); // Secondary sort by priority if same urgency
+
+        pedidos.sort(comparadorPorUrgencia);
+
+        System.out.println("=== DESPUÉS DEL SORTING ===");
+        for (Pedido p : pedidos) {
+            Duration tiempoRestante = Duration.between(fechaActual, p.getFechaEntrega());
+            System.out.println("Pedido " + p.getId() + " en " + p.getPosX() + "," + p.getPosY() +
+                    " - Tiempo restante: " + tiempoRestante.toMinutes() + " min - Entregado: " + p.isEntregado() +
+                    " - Asignado: " + p.isAsignado());
+        }
+
+        // 4. ADD THIS LOG BEFORE REROUTING CHECK
+        System.out.println("=== CHECKING REROUTING CONDITIONS ===");
+        System.out.println("TipoSimulacion: " + tipoSimulacion + ", PrimeraVez: " + primeraVez);
+
+        if (tipoSimulacion == 2 && primeraVez != 0) {
+            System.out.println("*** CALLING REASIGNAR PEDIDOS URGENTES ***");
+            reasignarPedidosUrgentes(fechaActual, tipoSimulacion);
+        } else {
+            System.out.println("*** SKIPPING REROUTING: tipoSim=" + tipoSimulacion + ", primeraVez=" + primeraVez + " ***");
+        }
+
         if (primeraVez == 0) {
             for (Camion camion : camiones) {
                 camion.crearRuta();
@@ -466,11 +546,13 @@ public class Genetico {
                 }
             }
         }
+
         if (tipoSimulacion == 1) {
             planificarPedidosDiaria(primeraVez, timer, anio, mes, dia, hora, minuto);
         } else {
             planificarPedidos(primeraVez, timer, anio, mes, dia, hora, minuto);
         }
+
         for (Camion camion : camiones) {
             if (camion.getRoute().isEmpty()) {
                 continue;
@@ -503,6 +585,21 @@ public class Genetico {
             generarSolucion(camion, posicionActual, anio, mes, dia, hora, minuto, bloqueos, tipoSimulacion);
             volverAlmacen(camion, bloqueos, anio, mes, dia, hora, minuto, tipoSimulacion);
         }
+
+        System.out.println("=== EJECUTAR END SUMMARY ===");
+        for (Camion camion : camiones) {
+            System.out.println("Camión " + camion.getCodigo() + " resultado final:");
+            System.out.println("  - Pedidos asignados: " + (camion.getPedidosAsignados() != null ?
+                    camion.getPedidosAsignados().size() : "null"));
+            if (camion.getPedidosAsignados() != null) {
+                for (Pedido p : camion.getPedidosAsignados()) {
+                    System.out.println("    * Pedido " + p.getId() + " en " + p.getPosX() + "," + p.getPosY());
+                }
+            }
+            System.out.println("  - Nodos en ruta: " + (camion.getRoute() != null ?
+                    camion.getRoute().size() : "null"));
+        }
+        System.out.println("=========================\n");
 
     }
 
@@ -743,34 +840,63 @@ public class Genetico {
     }
 
     public void verificacionMomentanea() {
+        System.out.println("=== VERIFICACION MOMENTANEA ===");
         for (Camion camion : camiones) {
             if (camion.getPedidosAsignados() == null)
                 continue;
+            System.out.println("Camión " + camion.getCodigo() + " - Pedidos asignados: " + camion.getPedidosAsignados().size());
             for (Pedido pedido : camion.getPedidosAsignados()) {
-                pedido.setEntregado(true);
+                // FIXED: Only mark as assigned, NOT as delivered
+                pedido.setAsignado(true);
+                pedido.setIdCamion(camion.getCodigo());
+                // Do NOT set entregado = true here!
+                System.out.println("  - Pedido " + pedido.getId() + " asignado (no entregado aún)");
             }
         }
+        System.out.println("===============================");
     }
 
     public void asignarPedidosACamionesVacios(int primeraVez, double timer, int anio, int mes, int dia, int hora, int minuto) {
+        System.out.println("=== ASIGNAR PEDIDOS A CAMIONES VACÍOS ===");
+
         NodoMapa posicionActual = null;
         for (Camion camion : camiones) {
-            if (camion.isEnAveria()) continue;
+            System.out.println("Procesando camión: " + camion.getCodigo());
+
+            if (camion.isEnAveria()) {
+                System.out.println("  -> SALTANDO: Camión en avería");
+                continue;
+            }
+
             if (camion.getPedidosAsignados() == null || camion.getPedidosAsignados().isEmpty()) {
                 camion.setPedidosAsignados(new ArrayList<>());
                 posicionActual = camion.getUbicacionActual();
+
                 for (int i = 0; i < pedidos.size(); i++) {
                     Pedido pedidoMax = proximoPedidoFD(camion, timer, 2, anio, mes, dia, hora, minuto);
+
                     if (pedidoMax == null) {
+                        System.out.println("  -> NO HAY MÁS PEDIDOS DISPONIBLES");
                         break;
                     }
+
                     if (camion.tieneCapacidad(pedidoMax.getCantidadGLP())) {
+                        System.out.println("  -> ASIGNANDO PEDIDO " + pedidoMax.getId() + " (NO marcando como entregado)");
+
+                        // FIXED: Only assign, don't mark as delivered
                         camion.asignar(pedidoMax);
                         camion.getPedidosAsignados().add(pedidoMax);
-                        pedidoMax.setEntregado(true);
-                    }
 
+                        // CORRECT: Mark as assigned only
+                        pedidoMax.setAsignado(true);
+                        pedidoMax.setIdCamion(camion.getCodigo());
+                        // REMOVED: pedidoMax.setEntregado(true); ← This was wrong!
+
+                    } else {
+                        System.out.println("  -> SIN CAPACIDAD para pedido " + pedidoMax.getId());
+                    }
                 }
+
                 if (primeraVez == 0) {
                     camion.setUbicacionActual(null);
                 } else {
@@ -778,40 +904,57 @@ public class Genetico {
                 }
             }
         }
+
+        System.out.println("=== FIN ASIGNAR PEDIDOS A CAMIONES VACÍOS ===\n");
     }
 
+
     public void asignarPedidosACamionesLlenos(int primeraVez, double timer, int anio, int mes, int dia, int hora, int minuto) {
+        System.out.println("=== ASIGNAR PEDIDOS A CAMIONES LLENOS ===");
+
         NodoMapa posicionActual;
         for (Camion camion : camiones) {
-
             if (camion.isEnAveria()) {
                 continue;
             }
 
             camion.setPedidosAsignados(new ArrayList<>());
             posicionActual = camion.getUbicacionActual();
+
             for (int i = 0; i < pedidos.size(); i++) {
                 Pedido pedidoMax = proximoPedidoFD(camion, timer, 2, anio, mes, dia, hora, minuto);
                 if (pedidoMax == null) {
                     break;
                 }
                 if (camion.tieneCapacidad(pedidoMax.getCantidadGLP())) {
+                    System.out.println("  -> ASIGNANDO PEDIDO " + pedidoMax.getId() + " a camión " + camion.getCodigo());
 
+                    // FIXED: Only assign, don't mark as delivered
                     camion.asignar(pedidoMax);
                     camion.getPedidosAsignados().add(pedidoMax);
-                    pedidoMax.setEntregado(true);
-                }
 
+                    // CORRECT: Mark as assigned only
+                    pedidoMax.setAsignado(true);
+                    pedidoMax.setIdCamion(camion.getCodigo());
+                    // REMOVED: pedidoMax.setEntregado(true); ← This was wrong!
+                }
             }
+
             if (primeraVez == 0) {
                 camion.setUbicacionActual(null);
             } else {
                 camion.setUbicacionActual(posicionActual);
             }
         }
+
+        System.out.println("=== FIN ASIGNAR PEDIDOS A CAMIONES LLENOS ===\n");
     }
 
+
     public void planificarPedidos(int primeraVez, double timer, int anio, int mes, int dia, int hora, int minuto) {
+        System.out.println("=== PLANIFICAR PEDIDOS START ===");
+        System.out.println("PrimeraVez: " + primeraVez + ", Timer: " + timer);
+
         boolean camionVacio = false;
         for (Camion camion : camiones) {
             if (
@@ -820,16 +963,25 @@ public class Genetico {
                             || camion.getPedidosAsignados().isEmpty()
             ) {
                 camionVacio = true;
+                System.out.println("Camión vacío encontrado: " + camion.getCodigo() +
+                        " (avería: " + camion.isEnAveria() +
+                        ", pedidos: " + (camion.getPedidosAsignados() != null ? camion.getPedidosAsignados().size() : "null") + ")");
                 break;
             }
         }
+
         verificacionMomentanea();
 
-        if (camionVacio)
+        System.out.println("Hay camión vacío: " + camionVacio);
+        if (camionVacio) {
+            System.out.println("*** ASIGNANDO PEDIDOS A CAMIONES VACÍOS ***");
             asignarPedidosACamionesVacios(primeraVez, timer, anio, mes, dia, hora, minuto);
-        else
+        } else {
+            System.out.println("*** ASIGNANDO PEDIDOS A CAMIONES LLENOS ***");
             asignarPedidosACamionesLlenos(primeraVez, timer, anio, mes, dia, hora, minuto);
+        }
 
+        System.out.println("=== PLANIFICAR PEDIDOS END ===\n");
     }
 
     public void planificarPedidosDiaria(int primeraVez, double timer, int anio, int mes, int dia, int hora, int minuto) {
@@ -859,18 +1011,40 @@ public class Genetico {
 
     public Pedido proximoPedidoFD(Camion camion, double timer, int tipoSimulacion,
                                   int anio, int mes, int dia, int hora, int minuto) {
+        System.out.println("  [PROXIMO_PEDIDO] Camión " + camion.getCodigo() + ", Timer: " + timer +
+                ", TipoSim: " + tipoSimulacion);
+        System.out.println("  [PROXIMO_PEDIDO] Ubicación camión: " +
+                (camion.getUbicacionActual() != null ?
+                        camion.getUbicacionActual().getX() + "," + camion.getUbicacionActual().getY() : "null"));
+
+        LocalDateTime fechaTimer = LocalDateTime.of(anio, mes, dia, hora, minuto);
+        System.out.println("  [PROXIMO_PEDIDO] Fecha timer: " + fechaTimer);
+
         if (tipoSimulacion == 1) {
-            double max = Double.POSITIVE_INFINITY;
-            Pedido pedidoMax = null;
+            // Daily simulation logic
+            Pedido pedidoSeleccionado = null;
+            double mejorScore = Double.NEGATIVE_INFINITY;
+
+            System.out.println("  [PROXIMO_PEDIDO] Evaluando " + pedidos.size() + " pedidos para simulación diaria");
+
             for (Pedido pedido : pedidos) {
-                if (!pedido.isEntregado()) {
+                System.out.println("    [EVAL] Pedido " + pedido.getId() + " en " + pedido.getPosX() + "," + pedido.getPosY());
+                System.out.println("    [EVAL] Entregado: " + pedido.isEntregado() +
+                        ", Asignado: " + pedido.isAsignado() +
+                        ", Cantidad: " + pedido.getCantidadGLP());
+
+                // FIXED: Check for both not delivered AND not assigned (or assigned to this truck)
+                boolean disponible = !pedido.isEntregado() &&
+                        (!pedido.isAsignado() || (pedido.getIdCamion() != null && pedido.getIdCamion().equals(camion.getCodigo())));
+
+                System.out.println("    [EVAL] Disponible para este camión: " + disponible);
+
+                if (disponible && camion.tieneCapacidad(pedido.getCantidadGLP())) {
                     double distance = camion.getUbicacionActual().calcularDistancia(new NodoMapa(0, pedido.getPosX(),
                             pedido.getPosY(), false));
                     double tiempoViaje = (distance / camion.getVelocidad()) * 60;
-                    // USAR función de conversión
-                    LocalDateTime fechaTimer = LocalDateTime.of(anio, mes, dia, hora, minuto);
-                    LocalDateTime fechaPedido = pedido.getFechaDeRegistro();
 
+                    LocalDateTime fechaPedido = pedido.getFechaDeRegistro();
                     double tiempoEntrega;
                     if (fechaPedido.getMonthValue() != fechaTimer.getMonthValue() ||
                             fechaPedido.getYear() != fechaTimer.getYear()) {
@@ -878,52 +1052,100 @@ public class Genetico {
                     } else {
                         tiempoEntrega = pedido.getTiempoLlegada();
                     }
-                    double tiempoActual = timer;
-                    if (camion.tieneCapacidad(pedido.getCantidadGLP())) {
-                        if (tiempoActual + tiempoViaje <= tiempoEntrega) {
-                            if (distance < max) {
-                                max = distance;
-                                pedidoMax = pedido;
-                            }
-                        }
-                    }
-                }
-            }
-            return pedidoMax;
-        } else {
-            double max = Double.POSITIVE_INFINITY;
-            Pedido pedidoMax = null;
-            for (Pedido pedido : pedidos) {
-                if (!pedido.isEntregado()) {
-                    double distance = camion.getUbicacionActual().calcularDistancia(new NodoMapa(0, pedido.getPosX(),
-                            pedido.getPosY(), false));
-                    double tiempoViaje = (distance / camion.getVelocidad()) * 60;
-                    // Misma lógica de conversión
-                    LocalDateTime fechaTimer = LocalDateTime.of(anio, mes, dia, hora, minuto);
-                    LocalDateTime fechaPedido = pedido.getFechaDeRegistro();
 
-                    double tiempoEntrega;
-                    if (fechaPedido.getMonthValue() != fechaTimer.getMonthValue() ||
-                            fechaPedido.getYear() != fechaTimer.getYear()) {
-                        tiempoEntrega = convertirTiempoEntregaReal(pedido);
-                    } else {
-                        tiempoEntrega = pedido.getTiempoLlegada();
-                    }
                     double tiempoActual = timer;
+                    double tiempoRestante = tiempoEntrega - tiempoActual;
+
+                    System.out.println("    [EVAL] Distancia: " + distance + ", TiempoViaje: " + tiempoViaje);
+                    System.out.println("    [EVAL] TiempoEntrega: " + tiempoEntrega + ", TiempoActual: " + tiempoActual);
+                    System.out.println("    [EVAL] TiempoRestante: " + tiempoRestante);
+                    System.out.println("    [EVAL] Puede llegar a tiempo: " + (tiempoActual + tiempoViaje <= tiempoEntrega));
 
                     if (tiempoActual + tiempoViaje <= tiempoEntrega) {
-                        if (distance < max) {
-                            max = distance;
-                            pedidoMax = pedido;
+                        double scoreUrgencia = 1000.0 / (tiempoRestante + 1);
+                        double scoreDistancia = 100.0 / (distance + 1);
+                        double scoreFinal = (scoreUrgencia * 3) + scoreDistancia;
+
+                        System.out.println("    [EVAL] ScoreUrgencia: " + scoreUrgencia +
+                                ", ScoreDistancia: " + scoreDistancia + ", ScoreFinal: " + scoreFinal);
+
+                        if (scoreFinal > mejorScore) {
+                            mejorScore = scoreFinal;
+                            pedidoSeleccionado = pedido;
+                            System.out.println("    [EVAL] *** NUEVO MEJOR PEDIDO ***");
                         }
-                    } else {
-                        return pedido;
                     }
+                } else {
+                    System.out.println("    [EVAL] -> DESCARTADO (entregado: " + pedido.isEntregado() +
+                            ", asignado: " + pedido.isAsignado() +
+                            ", sin capacidad: " + !camion.tieneCapacidad(pedido.getCantidadGLP()) + ")");
                 }
             }
-            return pedidoMax;
-        }
 
+            System.out.println("  [PROXIMO_PEDIDO] Pedido seleccionado: " +
+                    (pedidoSeleccionado != null ? "Pedido " + pedidoSeleccionado.getId() : "null"));
+            return pedidoSeleccionado;
+
+        } else {
+            // Weekly simulation logic
+            System.out.println("  [PROXIMO_PEDIDO] Evaluando " + pedidos.size() + " pedidos para simulación semanal");
+
+            Pedido pedidoMasUrgente = null;
+            double menorTiempoRestante = Double.POSITIVE_INFINITY;
+
+            for (Pedido pedido : pedidos) {
+                System.out.println("    [EVAL] Pedido " + pedido.getId() + " en " + pedido.getPosX() + "," + pedido.getPosY());
+                System.out.println("    [EVAL] Entregado: " + pedido.isEntregado() +
+                        ", Asignado: " + pedido.isAsignado());
+
+                // FIXED: Check for both not delivered AND not assigned (or assigned to this truck)
+                boolean disponible = !pedido.isEntregado() &&
+                        (!pedido.isAsignado() || (pedido.getIdCamion() != null && pedido.getIdCamion().equals(camion.getCodigo())));
+
+                System.out.println("    [EVAL] Disponible para este camión: " + disponible);
+
+                if (disponible) {
+                    double distance = camion.getUbicacionActual().calcularDistancia(new NodoMapa(0, pedido.getPosX(),
+                            pedido.getPosY(), false));
+                    double tiempoViaje = (distance / camion.getVelocidad()) * 60;
+
+                    LocalDateTime fechaPedido = pedido.getFechaDeRegistro();
+                    double tiempoEntrega;
+                    if (fechaPedido.getMonthValue() != fechaTimer.getMonthValue() ||
+                            fechaPedido.getYear() != fechaTimer.getYear()) {
+                        tiempoEntrega = convertirTiempoEntregaReal(pedido);
+                    } else {
+                        tiempoEntrega = pedido.getTiempoLlegada();
+                    }
+
+                    double tiempoActual = timer;
+                    double tiempoRestante = tiempoEntrega - tiempoActual;
+
+                    System.out.println("    [EVAL] Distancia: " + distance + ", TiempoViaje: " + tiempoViaje);
+                    System.out.println("    [EVAL] TiempoEntrega: " + tiempoEntrega + ", TiempoActual: " + tiempoActual);
+                    System.out.println("    [EVAL] TiempoRestante: " + tiempoRestante);
+                    System.out.println("    [EVAL] Puede llegar a tiempo: " + (tiempoActual + tiempoViaje <= tiempoEntrega));
+
+                    if (tiempoActual + tiempoViaje <= tiempoEntrega) {
+                        if (tiempoRestante < menorTiempoRestante) {
+                            menorTiempoRestante = tiempoRestante;
+                            pedidoMasUrgente = pedido;
+                            System.out.println("    [EVAL] *** NUEVO PEDIDO MÁS URGENTE ***");
+                        }
+                    } else {
+                        System.out.println("    [EVAL] *** PEDIDO VENCIDO - RETORNANDO INMEDIATAMENTE ***");
+                        return pedido;
+                    }
+                } else {
+                    System.out.println("    [EVAL] -> DESCARTADO (entregado: " + pedido.isEntregado() +
+                            ", asignado a otro: " + (pedido.isAsignado() && !camion.getCodigo().equals(pedido.getIdCamion())) + ")");
+                }
+            }
+
+            System.out.println("  [PROXIMO_PEDIDO] Pedido más urgente seleccionado: " +
+                    (pedidoMasUrgente != null ? "Pedido " + pedidoMasUrgente.getId() : "null"));
+            return pedidoMasUrgente;
+        }
     }
 
     public void inicializarPoblacion() {
@@ -958,6 +1180,326 @@ public class Genetico {
             return pedido.getTiempoLlegada();
         }
         return ChronoUnit.MINUTES.between(fechaBaseSimulacion, pedido.getFechaEntrega());
+    }
+
+    // Add this new method to Genetico.java
+    public void reasignarPedidosUrgentes(LocalDateTime fechaActual, int tipoSimulacion) {
+        System.out.println("=== ENHANCED REASIGNAR PEDIDOS URGENTES START ===");
+        System.out.println("Fecha actual: " + fechaActual);
+
+        // Get ALL urgent orders (including newly assigned ones)
+        // FIXED: Filter by delivery status, not assignment status
+        List<Pedido> todosLosUrgentes = pedidos.stream()
+                .filter(p -> !p.isEntregado()) // Only non-delivered (assignment doesn't matter)
+                .filter(p -> {
+                    Duration tiempoRestante = Duration.between(fechaActual, p.getFechaEntrega());
+                    return tiempoRestante.toHours() < 4; // Urgent: < 4 hours remaining
+                })
+                .sorted(Comparator.comparing((Pedido p) -> Duration.between(fechaActual, p.getFechaEntrega()).toMinutes()))
+                .collect(Collectors.toList());
+
+        System.out.println("Total pedidos urgentes (entregados y no entregados): " + todosLosUrgentes.size());
+        for (Pedido p : todosLosUrgentes) {
+            Duration tiempoRestante = Duration.between(fechaActual, p.getFechaEntrega());
+            System.out.println("  - Pedido urgente " + p.getId() + " en " + p.getPosX() + "," + p.getPosY() +
+                    " - Tiempo restante: " + tiempoRestante.toMinutes() + " min - Asignado: " + p.isAsignado() +
+                    " - Camión: " + p.getIdCamion() + " - Entregado: " + p.isEntregado());
+        }
+
+        if (todosLosUrgentes.isEmpty()) {
+            System.out.println("*** NO HAY PEDIDOS URGENTES - SALIENDO ***");
+            return;
+        }
+
+        // Find the most urgent unassigned order
+        // FIXED: Check assignment status correctly
+        Pedido pedidoMasUrgenteNoAsignado = todosLosUrgentes.stream()
+                .filter(p -> !p.isAsignado()) // Only truly unassigned orders
+                .findFirst()
+                .orElse(null);
+
+        if (pedidoMasUrgenteNoAsignado == null) {
+            System.out.println("*** TODOS LOS PEDIDOS URGENTES YA ESTÁN ASIGNADOS ***");
+            // Check if we need to swap assignments between trucks
+            verificarIntercambiosUrgentes(todosLosUrgentes, fechaActual);
+            return;
+        }
+
+        System.out.println("\n--- Procesando pedido MÁS urgente no asignado: " + pedidoMasUrgenteNoAsignado.getId() + " ---");
+        Duration urgenciaMaxima = Duration.between(fechaActual, pedidoMasUrgenteNoAsignado.getFechaEntrega());
+        System.out.println("Urgencia máxima: " + urgenciaMaxima.toMinutes() + " min");
+
+        // Find truck with LEAST urgent assigned orders
+        Camion mejorCandidato = null;
+        Pedido pedidoMenosUrgente = null;
+        Duration mayorTiempoDisponible = Duration.ZERO;
+
+        System.out.println("Evaluando camiones para reasignación:");
+        for (Camion camion : camiones) {
+            System.out.println("  Camión " + camion.getCodigo() + ":");
+            System.out.println("    - En avería: " + camion.isEnAveria());
+            System.out.println("    - Pedidos asignados: " + (camion.getPedidosAsignados() != null ?
+                    camion.getPedidosAsignados().size() : "null"));
+
+            if (camion.isEnAveria()) {
+                System.out.println("    -> DESCARTADO: En avería");
+                continue;
+            }
+
+            if (camion.getPedidosAsignados() == null || camion.getPedidosAsignados().isEmpty()) {
+                System.out.println("    -> DISPONIBLE PARA ASIGNACIÓN DIRECTA");
+                // Truck is available, assign directly
+                if (camion.tieneCapacidad(pedidoMasUrgenteNoAsignado.getCantidadGLP())) {
+                    System.out.println("    -> *** ASIGNACIÓN DIRECTA ***");
+                    if (camion.getPedidosAsignados() == null) {
+                        camion.setPedidosAsignados(new ArrayList<>());
+                    }
+                    camion.getPedidosAsignados().add(pedidoMasUrgenteNoAsignado);
+                    pedidoMasUrgenteNoAsignado.setAsignado(true);
+                    pedidoMasUrgenteNoAsignado.setIdCamion(camion.getCodigo());
+                    // FIXED: Don't mark as delivered!
+                    camion.setRoute(new ArrayList<>()); // Clear route for replanning
+                    System.out.println("*** ASIGNACIÓN DIRECTA COMPLETADA ***");
+                    return;
+                }
+                continue;
+            }
+
+            // Find least urgent order assigned to this truck
+            // FIXED: Only consider non-delivered orders
+            Pedido menosUrgenteCamion = camion.getPedidosAsignados().stream()
+                    .filter(p -> !p.isEntregado()) // Only non-delivered orders
+                    .max(Comparator.comparing((Pedido p) -> Duration.between(fechaActual, p.getFechaEntrega()).toMinutes()))
+                    .orElse(null);
+
+            System.out.println("    - Pedido menos urgente: " + (menosUrgenteCamion != null ?
+                    "Pedido " + menosUrgenteCamion.getId() : "ninguno"));
+
+            if (menosUrgenteCamion != null) {
+                Duration tiempoDisponible = Duration.between(fechaActual, menosUrgenteCamion.getFechaEntrega());
+                System.out.println("    - Tiempo disponible: " + tiempoDisponible.toMinutes() + " min");
+                System.out.println("    - Es menos urgente que pedido objetivo: " +
+                        (tiempoDisponible.compareTo(urgenciaMaxima) > 0));
+                System.out.println("    - Tiene más tiempo que mejor candidato actual: " +
+                        (tiempoDisponible.compareTo(mayorTiempoDisponible) > 0));
+
+                // If this truck's least urgent order is less urgent than our most urgent unassigned order
+                if (tiempoDisponible.compareTo(urgenciaMaxima) > 0 &&
+                        tiempoDisponible.compareTo(mayorTiempoDisponible) > 0 &&
+                        camion.tieneCapacidad(pedidoMasUrgenteNoAsignado.getCantidadGLP())) {
+
+                    mejorCandidato = camion;
+                    pedidoMenosUrgente = menosUrgenteCamion;
+                    mayorTiempoDisponible = tiempoDisponible;
+                    System.out.println("    -> NUEVO MEJOR CANDIDATO PARA INTERCAMBIO");
+                }
+            }
+        }
+
+        // Execute reassignment if found
+        if (mejorCandidato != null && pedidoMenosUrgente != null) {
+            System.out.println("*** EJECUTANDO INTERCAMBIO ***");
+            System.out.println("Camión: " + mejorCandidato.getCodigo());
+            System.out.println("Removiendo pedido: " + pedidoMenosUrgente.getId());
+            System.out.println("Asignando pedido urgente: " + pedidoMasUrgenteNoAsignado.getId());
+
+            // Remove less urgent order
+            mejorCandidato.getPedidosAsignados().remove(pedidoMenosUrgente);
+            pedidoMenosUrgente.setAsignado(false);
+            pedidoMenosUrgente.setIdCamion(null);
+
+            // Assign urgent order
+            mejorCandidato.getPedidosAsignados().add(pedidoMasUrgenteNoAsignado);
+            pedidoMasUrgenteNoAsignado.setAsignado(true);
+            pedidoMasUrgenteNoAsignado.setIdCamion(mejorCandidato.getCodigo());
+            // FIXED: Don't mark as delivered!
+
+            // Clear route for replanning
+            mejorCandidato.setRoute(new ArrayList<>());
+
+            System.out.println("*** INTERCAMBIO COMPLETADO ***");
+        } else {
+            System.out.println("*** NO SE PUDO REALIZAR INTERCAMBIO ***");
+        }
+
+        System.out.println("=== ENHANCED REASIGNAR PEDIDOS URGENTES END ===\n");
+    }
+
+    private void debugUrgentOrderDetection(LocalDateTime fechaActual) {
+        System.out.println("\n=== DEBUG URGENT ORDER DETECTION ===");
+        System.out.println("Fecha actual: " + fechaActual);
+        System.out.println("Total pedidos en lista: " + pedidos.size());
+
+        for (Pedido p : pedidos) {
+            Duration tiempoRestante = Duration.between(fechaActual, p.getFechaEntrega());
+            boolean esUrgente = tiempoRestante.toHours() < 4;
+            boolean noEntregado = !p.isEntregado();
+            boolean noAsignado = !p.isAsignado();
+
+            System.out.println("Pedido " + p.getId() + ":");
+            System.out.println("  - Posición: " + p.getPosX() + "," + p.getPosY());
+            System.out.println("  - Fecha entrega: " + p.getFechaEntrega());
+            System.out.println("  - Tiempo restante: " + tiempoRestante.toMinutes() + " min (" + tiempoRestante.toHours() + " horas)");
+            System.out.println("  - Es urgente (< 4h): " + esUrgente);
+            System.out.println("  - No entregado: " + noEntregado);
+            System.out.println("  - No asignado: " + noAsignado);
+            System.out.println("  - Califica para reasignación: " + (esUrgente && noEntregado && noAsignado));
+        }
+        System.out.println("=====================================\n");
+    }
+
+    // ADD this method to Genetico.java
+// Method to check for swaps between trucks when all urgent orders are already assigned
+    private void verificarIntercambiosUrgentes(List<Pedido> pedidosUrgentes, LocalDateTime fechaActual) {
+        System.out.println("\n=== VERIFICANDO INTERCAMBIOS ENTRE CAMIONES ===");
+
+        // Group urgent orders by assigned truck
+        Map<String, List<Pedido>> pedidosPorCamion = new HashMap<>();
+        for (Pedido p : pedidosUrgentes) {
+            if (p.isAsignado() && p.getIdCamion() != null && !p.isEntregado()) {
+                pedidosPorCamion.computeIfAbsent(p.getIdCamion(), k -> new ArrayList<>()).add(p);
+            }
+        }
+
+        System.out.println("Camiones con pedidos urgentes asignados: " + pedidosPorCamion.size());
+
+        // Look for optimization opportunities
+        for (String codigoCamion : pedidosPorCamion.keySet()) {
+            List<Pedido> pedidosDelCamion = pedidosPorCamion.get(codigoCamion);
+
+            System.out.println("Camión " + codigoCamion + " tiene " + pedidosDelCamion.size() + " pedidos urgentes");
+
+            // Find least urgent order in this truck
+            Pedido menosUrgente = pedidosDelCamion.stream()
+                    .max(Comparator.comparing(p -> Duration.between(fechaActual, p.getFechaEntrega()).toMinutes()))
+                    .orElse(null);
+
+            if (menosUrgente != null) {
+                Duration tiempoMenosUrgente = Duration.between(fechaActual, menosUrgente.getFechaEntrega());
+                System.out.println("  - Pedido menos urgente: " + menosUrgente.getId() +
+                        " (tiempo: " + tiempoMenosUrgente.toMinutes() + " min)");
+
+                // Look for more urgent orders in other trucks
+                for (String otroCodigoCamion : pedidosPorCamion.keySet()) {
+                    if (!otroCodigoCamion.equals(codigoCamion)) {
+                        List<Pedido> pedidosDelOtroCamion = pedidosPorCamion.get(otroCodigoCamion);
+
+                        Pedido masUrgenteDOtro = pedidosDelOtroCamion.stream()
+                                .min(Comparator.comparing(p -> Duration.between(fechaActual, p.getFechaEntrega()).toMinutes()))
+                                .orElse(null);
+
+                        if (masUrgenteDOtro != null) {
+                            Duration tiempoMasUrgente = Duration.between(fechaActual, masUrgenteDOtro.getFechaEntrega());
+
+                            System.out.println("  - Comparando con camión " + otroCodigoCamion +
+                                    " pedido " + masUrgenteDOtro.getId() +
+                                    " (tiempo: " + tiempoMasUrgente.toMinutes() + " min)");
+
+                            // If we can improve urgency by swapping (significant difference: >30 min)
+                            long diferenciaTiempo = tiempoMenosUrgente.toMinutes() - tiempoMasUrgente.toMinutes();
+                            if (diferenciaTiempo > 30) { // Only swap if significant improvement
+                                System.out.println("*** OPORTUNIDAD DE INTERCAMBIO DETECTADA ***");
+                                System.out.println("Diferencia de urgencia: " + diferenciaTiempo + " minutos");
+                                System.out.println("Camión " + codigoCamion + " pedido " + menosUrgente.getId() +
+                                        " (menos urgente: " + tiempoMenosUrgente.toMinutes() + " min)");
+                                System.out.println("VS Camión " + otroCodigoCamion + " pedido " + masUrgenteDOtro.getId() +
+                                        " (más urgente: " + tiempoMasUrgente.toMinutes() + " min)");
+
+                                // Execute swap if capacity allows
+                                Camion camion1 = encontrarCamionPorCodigo(codigoCamion);
+                                Camion camion2 = encontrarCamionPorCodigo(otroCodigoCamion);
+
+                                if (camion1 != null && camion2 != null) {
+                                    // Check capacity constraints
+                                    boolean camion1PuedeTomarPedido2 = verificarCapacidadParaIntercambio(camion1, menosUrgente, masUrgenteDOtro);
+                                    boolean camion2PuedeTomarPedido1 = verificarCapacidadParaIntercambio(camion2, masUrgenteDOtro, menosUrgente);
+
+                                    if (camion1PuedeTomarPedido2 && camion2PuedeTomarPedido1) {
+                                        ejecutarIntercambio(camion1, menosUrgente, camion2, masUrgenteDOtro);
+                                        return; // Only do one swap per iteration to avoid complications
+                                    } else {
+                                        System.out.println("*** INTERCAMBIO BLOQUEADO POR CAPACIDAD ***");
+                                        System.out.println("Camión1 puede tomar pedido2: " + camion1PuedeTomarPedido2);
+                                        System.out.println("Camión2 puede tomar pedido1: " + camion2PuedeTomarPedido1);
+                                    }
+                                }
+                            } else {
+                                System.out.println("  -> Diferencia insuficiente para intercambio (" + diferenciaTiempo + " min)");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        System.out.println("=== FIN VERIFICACIÓN INTERCAMBIOS ===\n");
+    }
+
+    // ADD this helper method to Genetico.java
+    private Camion encontrarCamionPorCodigo(String codigo) {
+        return camiones.stream()
+                .filter(c -> c.getCodigo().equals(codigo))
+                .findFirst()
+                .orElse(null);
+    }
+
+    // ADD this helper method to Genetico.java
+    private boolean verificarCapacidadParaIntercambio(Camion camion, Pedido pedidoARemover, Pedido pedidoAAgregar) {
+        // Calculate capacity if we remove one order and add another
+        double capacidadLiberada = pedidoARemover.getCantidadGLP();
+        double capacidadNecesaria = pedidoAAgregar.getCantidadGLP();
+        double diferenciaCarga = capacidadNecesaria - capacidadLiberada;
+
+        // Check if truck can handle the difference
+        double cargaActual = camion.getCargaAsignada();
+        double nuevaCarga = cargaActual + diferenciaCarga;
+
+        boolean puedeIntercambiar = nuevaCarga <= camion.getGlpDisponible();
+
+        System.out.println("    [CAPACIDAD_INTERCAMBIO] Camión " + camion.getCodigo() +
+                " - Carga actual: " + cargaActual +
+                ", Libera: " + capacidadLiberada +
+                ", Necesita: " + capacidadNecesaria +
+                ", Nueva carga: " + nuevaCarga +
+                ", Capacidad: " + camion.getGlpDisponible() +
+                ", Puede intercambiar: " + puedeIntercambiar);
+
+        return puedeIntercambiar;
+    }
+
+    // ADD this helper method to Genetico.java
+    private void ejecutarIntercambio(Camion camion1, Pedido pedido1, Camion camion2, Pedido pedido2) {
+        System.out.println("*** EJECUTANDO INTERCAMBIO ENTRE CAMIONES ***");
+        System.out.println("Intercambiando:");
+        System.out.println("  - Camión " + camion1.getCodigo() + " cede pedido " + pedido1.getId() +
+                " y recibe pedido " + pedido2.getId());
+        System.out.println("  - Camión " + camion2.getCodigo() + " cede pedido " + pedido2.getId() +
+                " y recibe pedido " + pedido1.getId());
+
+        // Remove orders from their current trucks
+        camion1.getPedidosAsignados().remove(pedido1);
+        camion2.getPedidosAsignados().remove(pedido2);
+
+        // Update truck loads
+        camion1.setCargaAsignada(camion1.getCargaAsignada() - pedido1.getCantidadGLP() + pedido2.getCantidadGLP());
+        camion2.setCargaAsignada(camion2.getCargaAsignada() - pedido2.getCantidadGLP() + pedido1.getCantidadGLP());
+
+        // Swap assignments
+        camion1.getPedidosAsignados().add(pedido2);
+        camion2.getPedidosAsignados().add(pedido1);
+
+        // Update order assignments
+        pedido1.setIdCamion(camion2.getCodigo());
+        pedido2.setIdCamion(camion1.getCodigo());
+
+        // Clear routes for replanning
+        camion1.setRoute(new ArrayList<>());
+        camion2.setRoute(new ArrayList<>());
+
+        System.out.println("*** INTERCAMBIO COMPLETADO ***");
+        System.out.println("Resultado:");
+        System.out.println("  - Camión " + camion1.getCodigo() + " nueva carga: " + camion1.getCargaAsignada());
+        System.out.println("  - Camión " + camion2.getCodigo() + " nueva carga: " + camion2.getCargaAsignada());
     }
 
 }

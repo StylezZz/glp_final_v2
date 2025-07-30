@@ -34,6 +34,15 @@ public class PedidoService {
         return pedidoRepository.findAll();
     }
 
+    public List<Pedido> obtenerPorSemanaMasMenosUnDia(Integer anio, Integer mes, Integer dia) {
+        LocalDateTime fechaInicio = LocalDateTime.of(anio, mes, dia, 0, 0);
+        LocalDateTime fechaFin = fechaInicio.plusDays(6);
+
+        LocalDateTime fechaInicioMenosUnDia = fechaInicio.minusDays(1);
+        LocalDateTime fechaFinMasUnDia = fechaFin.plusDays(1);
+        return pedidoRepository.findByfechaDeRegistroBetween(fechaInicioMenosUnDia, fechaFinMasUnDia);
+    }
+
     public Pedido obtenerPorId(Integer id) {
         return pedidoRepository.findById(id).orElse(null);
     }
