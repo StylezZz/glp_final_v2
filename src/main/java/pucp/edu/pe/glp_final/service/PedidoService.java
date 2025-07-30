@@ -34,12 +34,12 @@ public class PedidoService {
         return pedidoRepository.findAll();
     }
 
-    public List<Pedido> obtenerPorSemanaMasMenosUnDia(Integer anio, Integer mes, Integer dia) {
-        LocalDateTime fechaInicio = LocalDateTime.of(anio, mes, dia, 0, 0);
+    public List<Pedido> obtenerPorSemanaMasMenosUnDia(Integer anio, Integer mes, Integer dia, Integer hora, Integer minuto) {
+        LocalDateTime fechaInicio = LocalDateTime.of(anio, mes, dia, hora, minuto);
         LocalDateTime fechaFin = fechaInicio.plusDays(6);
 
-        LocalDateTime fechaInicioMenosUnDia = fechaInicio.minusDays(1);
-        LocalDateTime fechaFinMasUnDia = fechaFin.plusDays(1);
+        LocalDateTime fechaInicioMenosUnDia = fechaInicio.minusDays(2);
+        LocalDateTime fechaFinMasUnDia = fechaFin.plusDays(2);
         return pedidoRepository.findByfechaDeRegistroBetween(fechaInicioMenosUnDia, fechaFinMasUnDia);
     }
 
@@ -120,6 +120,7 @@ public class PedidoService {
     public List<Pedido> getPedidosSemana(List<Pedido> pedidos, int dia, int mes, int anio, int hora, int minuto) {
         List<Pedido> pedidosSemana = new ArrayList<>();
         LocalDateTime fechaInicio = LocalDateTime.of(anio, mes, dia, hora, minuto);
+        fechaInicio = fechaInicio.minusDays(1); // Inicia un día antes para incluir el día actual
         LocalDateTime fechaFin = fechaInicio.plusHours(168);
 
         for (Pedido pedido : pedidos) {

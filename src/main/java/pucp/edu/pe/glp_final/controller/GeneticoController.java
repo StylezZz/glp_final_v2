@@ -253,7 +253,7 @@ public class GeneticoController {
                                 ", Urgente=" + (tiempoRestante.toHours() < 4));
                     });
 
-//            this.pedidos = pedidosActualizados;
+            this.pedidos = pedidosActualizados;
 
             // Show urgent orders count
             long urgentCount = pedidos.stream()

@@ -55,7 +55,7 @@ public class SimulacionController {
         System.out.println("Last update: " + ultimaActualizacionPedidos);
 
         // Get fresh data from database
-        List<Pedido> pedidosTotales = pedidoService.obtenerPorSemanaMasMenosUnDia(anio, mes, dia);
+        List<Pedido> pedidosTotales = pedidoService.obtenerPorSemanaMasMenosUnDia(anio, mes, dia, hora, minuto);
         this.pedidos = pedidoService.getPedidosSemana(pedidosTotales, dia, mes, anio, hora, minuto);
         this.ultimaActualizacionPedidos = LocalDateTime.now();
 
