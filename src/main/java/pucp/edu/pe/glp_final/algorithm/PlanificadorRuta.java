@@ -55,7 +55,7 @@ public class PlanificadorRuta {
                     if (tipoSimulacion == 1) {
                         nodoAnterior.setTiempoFin(vehiculo.getUbicacionActual().getTiempoFin() + 1);
                     } else {
-                        nodoAnterior.setTiempoFin(vehiculo.getUbicacionActual().getTiempoFin() + 1.2);
+                        nodoAnterior.setTiempoFin(vehiculo.getUbicacionActual().getTiempoFin() + 1);
                     }
                     nodoAnterior.setAnio(anio);
                     nodoAnterior.setMes(mes);
@@ -70,7 +70,7 @@ public class PlanificadorRuta {
             if (tipoSimulacion == 1) {
                 actual.setTiempoFin(actual.getTiempoInicio() + 1);
             } else {
-                actual.setTiempoFin(actual.getTiempoInicio() + 1.2);
+                actual.setTiempoFin(actual.getTiempoInicio() + 1);
             }
             for (NodoMapa vecino : obtenerNodosVecinos(actual, bloqueos, anio, mes, dia, hora, minuto, gridGraph, objetivo, pedido, fechaBaseSimulacion)) {
 
@@ -119,7 +119,7 @@ public class PlanificadorRuta {
                         if (tipoSimulacion == 1) {
                             ruta.setTiempoFin(caminoVehiculo.getTiempoInicio() + 1);
                         } else {
-                            ruta.setTiempoFin(caminoVehiculo.getTiempoInicio() + 1.2);
+                            ruta.setTiempoFin(caminoVehiculo.getTiempoInicio() + 1);
                         }
                     }
                     ruta.setPedido(pedido);

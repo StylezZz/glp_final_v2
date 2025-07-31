@@ -202,21 +202,9 @@ public class GeneticoController {
         );
         List<Averia> todasLasAverias = new ArrayList<>(averias);
         todasLasAverias.addAll(averiasProgramadas);
-        System.out.println("Averias a generar: " + todasLasAverias.size());
-        for (Averia averia : todasLasAverias) {
-            System.out.println("Averia: " + averia.getCodigoCamion() + " - Tipo: " + averia.getTipoAveria() + " - Turno: " + averia.getTurnoAveria());
-        }
-
         gestionarAverias(todasLasAverias, averias, timer);
-        List<Bloqueo> bloqueos = simulacionController.getBloqueos();
 
-        // Log current pedidos state BEFORE getting new ones
-        System.out.println("=== ESTADO ANTES DE OBTENER NUEVOS PEDIDOS ===");
-        System.out.println("Pedidos actuales en memoria: " + pedidos.size());
-        for (Pedido p : pedidos) {
-            System.out.println("  - Pedido " + p.getId() + " en " + p.getPosX() + "," + p.getPosY() +
-                    " - EntregadoCompleto: " + p.isEntregadoCompleto() + " - Entregado: " + p.isEntregado());
-        }
+        List<Bloqueo> bloqueos = simulacionController.getBloqueos();
 
         if (primeraEjecucionSemanal == 0) {
             System.out.println("*** PRIMERA EJECUCIÓN SEMANAL ***");
@@ -226,53 +214,8 @@ public class GeneticoController {
             System.out.println("Pedidos para simulación: " + pedidosSimulacion.size());
         } else {
             System.out.println("*** EJECUCIÓN SEMANAL POSTERIOR ***");
-            List<Pedido> pedidosActualizados = simulacionController.getPedidosFrescos(anioAjustado, mesAjustado, diaAjustado, hora, minuto);
-            System.out.println("Pedidos actualizados del simulador: " + pedidosActualizados.size());
-
-            // Log ALL orders from simulation controller
-            System.out.println("=== TODOS LOS PEDIDOS DEL SIMULADOR ===");
-            for (Pedido p : pedidosActualizados) {
-                System.out.println("  - Pedido " + p.getId() + " en " + p.getPosX() + "," + p.getPosY() +
-                        " - EntregadoCompleto: " + p.isEntregadoCompleto() + " - Entregado: " + p.isEntregado() +
-                        " - Asignado: " + p.isAsignado() + " - FechaEntrega: " + p.getFechaEntrega());
-            }
-
-            // Show sample of fresh orders
-            System.out.println("=== SAMPLE OF FRESH ORDERS ===");
-            LocalDateTime tiempoSimulacion = LocalDateTime.of(anioAjustado, mesAjustado, diaAjustado, hora, minuto);
-
-            pedidosActualizados.stream()
-                    .sorted((p1, p2) -> Integer.compare(p2.getId(), p1.getId())) // Latest first
-                    .limit(10)
-                    .forEach(p -> {
-                        Duration tiempoRestante = Duration.between(tiempoSimulacion, p.getFechaEntrega());
-                        System.out.println("  ORDER: ID=" + p.getId() +
-                                ", Pos=" + p.getPosX() + "," + p.getPosY() +
-                                ", EntregadoCompleto=" + p.isEntregadoCompleto() +
-                                ", TiempoRestante=" + tiempoRestante.toMinutes() + "min" +
-                                ", Urgente=" + (tiempoRestante.toHours() < 4));
-                    });
-
-            this.pedidos = pedidosActualizados;
-
-            // Show urgent orders count
-            long urgentCount = pedidos.stream()
-                    .filter(p -> {
-                        Duration tiempoRestante = Duration.between(tiempoSimulacion, p.getFechaEntrega());
-                        return tiempoRestante.toHours() < 4;
-                    })
-                    .count();
-
-            System.out.println("*** URGENT ORDERS DETECTED: " + urgentCount + " ***");
-
-
-            System.out.println("Pedidos filtrados (no entregados): " + pedidos.size());
-            System.out.println("=== PEDIDOS FILTRADOS ===");
-            for (Pedido p : pedidos) {
-                System.out.println("  - Pedido " + p.getId() + " en " + p.getPosX() + "," + p.getPosY() +
-                        " - EntregadoCompleto: " + p.isEntregadoCompleto() + " - Entregado: " + p.isEntregado() +
-                        " - Asignado: " + p.isAsignado() + " - FechaEntrega: " + p.getFechaEntrega());
-            }
+            this.pedidos = simulacionController.getPedidosFrescos(anioAjustado, mesAjustado, diaAjustado, hora, minuto);
+            System.out.println("Pedidos actualizados del simulador: " + this.pedidos.size());
 
             pedidosSimulacion = pedidoService.dividirPedidos(pedidos,2);
             System.out.println("Pedidos divididos para simulación: " + pedidosSimulacion.size());
@@ -307,32 +250,6 @@ public class GeneticoController {
                 timer,
                 2
         );
-
-        System.out.println("=== DESPUÉS DE SIMULACION RUTEO ===");
-        // Log final truck states
-        for (Camion camion : aco.getCamiones()) {
-            System.out.println("Camión " + camion.getCodigo() + " resultado:");
-            System.out.println("  - Pedidos asignados: " + (camion.getPedidosAsignados() != null ?
-                    camion.getPedidosAsignados().size() : "null"));
-            if (camion.getPedidosAsignados() != null) {
-                for (Pedido p : camion.getPedidosAsignados()) {
-                    System.out.println("    * Pedido " + p.getId() + " en " + p.getPosX() + "," + p.getPosY());
-                }
-            }
-            System.out.println("  - Ruta: " + (camion.getRoute() != null ? camion.getRoute().size() + " nodos" : "null"));
-            if (camion.getRoute() != null && !camion.getRoute().isEmpty()) {
-                System.out.println("  - Destinos en ruta:");
-                for (NodoMapa nodo : camion.getRoute()) {
-                    if (nodo.isEsPedido()) {
-                        System.out.println("    -> Pedido en " + nodo.getX() + "," + nodo.getY());
-                    } else if (nodo.isEsAlmacen()) {
-                        System.out.println("    -> Almacén en " + nodo.getX() + "," + nodo.getY());
-                    } else {
-                        System.out.println("    -> Punto en " + nodo.getX() + "," + nodo.getY());
-                    }
-                }
-            }
-        }
 
         primeraEjecucionSemanal = 1;
 

@@ -33,7 +33,6 @@ public class SimulacionController {
 
     private List<Bloqueo> bloqueos;
     private List<Pedido> pedidos;
-    private LocalDateTime ultimaActualizacionPedidos; // Track last update time
 
     @Autowired
     private SimulacionService simulacionService;
@@ -46,37 +45,10 @@ public class SimulacionController {
 
     // ADD: Method to get fresh orders efficiently
     public List<Pedido> getPedidosFrescos(int anio, int mes, int dia, int hora, int minuto) {
-        System.out.println("=== GETTING FRESH ORDERS ===");
-        System.out.println("Requested time: " + anio + "-" + mes + "-" + dia + " " + hora + ":" + minuto);
-
-        LocalDateTime tiempoActual = LocalDateTime.of(anio, mes, dia, hora, minuto);
-
-        System.out.println("*** REFRESHING ORDERS FROM DATABASE ***");
-        System.out.println("Last update: " + ultimaActualizacionPedidos);
-
-        // Get fresh data from database
         List<Pedido> pedidosTotales = pedidoService.obtenerPorSemanaMasMenosUnDia(anio, mes, dia, hora, minuto);
         this.pedidos = pedidoService.getPedidosSemana(pedidosTotales, dia, mes, anio, hora, minuto);
-        this.ultimaActualizacionPedidos = LocalDateTime.now();
 
         System.out.println("Refreshed orders count: " + this.pedidos.size());
-
-        // Log recent orders for debugging
-        List<Pedido> pedidosRecientes = this.pedidos.stream()
-                .sorted((p1, p2) -> Integer.compare(p2.getId(), p1.getId())) // Descending by ID
-                .limit(10)
-                .toList();
-
-        System.out.println("=== LATEST 10 ORDERS AFTER REFRESH ===");
-        for (Pedido p : pedidosRecientes) {
-            java.time.Duration tiempoRestante = java.time.Duration.between(tiempoActual, p.getFechaEntrega());
-            System.out.println("  FRESH ORDER: ID=" + p.getId() +
-                    ", Pos=" + p.getPosX() + "," + p.getPosY() +
-                    ", EntregadoCompleto=" + p.isEntregadoCompleto() +
-                    ", TiempoRestante=" + tiempoRestante.toMinutes() + "min" +
-                    ", Urgente=" + (tiempoRestante.toHours() < 4));
-        }
-
 
         System.out.println("=== RETURNING ORDERS ===");
         System.out.println("Total orders returned: " + this.pedidos.size());
@@ -99,44 +71,6 @@ public class SimulacionController {
                 .toList();
     }
 
-    // ADD: Force refresh method for testing
-    @GetMapping("/refresh-pedidos")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> forzarActualizacionPedidos(
-            @RequestParam int anio,
-            @RequestParam int mes,
-            @RequestParam int dia,
-            @RequestParam int hora,
-            @RequestParam int minuto
-    ) {
-        System.out.println("*** FORCING ORDERS REFRESH ***");
-
-        // Force refresh by clearing last update time
-        this.ultimaActualizacionPedidos = null;
-
-        List<Pedido> pedidosActualizados = getPedidosFrescos(anio, mes, dia, hora, minuto);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("mensaje", "Pedidos actualizados exitosamente");
-        response.put("totalPedidos", pedidosActualizados.size());
-        response.put("fechaActualizacion", LocalDateTime.now());
-
-        // Show urgent orders count
-        LocalDateTime tiempoActual = LocalDateTime.of(anio, mes, dia, hora, minuto);
-        long pedidosUrgentes = pedidosActualizados.stream()
-                .filter(p -> !p.isEntregadoCompleto())
-                .filter(p -> {
-                    java.time.Duration tiempoRestante = java.time.Duration.between(tiempoActual, p.getFechaEntrega());
-                    return tiempoRestante.toHours() < 4;
-                })
-                .count();
-
-        response.put("pedidosUrgentes", pedidosUrgentes);
-
-        return ResponseEntity.ok(response);
-    }
-
-    // EXISTING METHODS REMAIN THE SAME...
     @GetMapping("/detener")
     public ResponseEntity<Object> detenerSimulacion() {
         simulacionService.parar();

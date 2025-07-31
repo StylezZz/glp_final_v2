@@ -241,7 +241,7 @@ public class Genetico {
                                     gestionarCapacidadesAlmacen(hora, minuto, camion, deposito2);
                                 }
                                 ubicacion.setTiempoInicio(startTime);
-                                ubicacion.setTiempoFin(startTime + 1.2);
+                                ubicacion.setTiempoFin(startTime + 1);
                             }
 
                         } else {
@@ -352,7 +352,7 @@ public class Genetico {
                 if (tipoSimulacion == 1) {
                     nodoCentral.setTiempoFin(camion.getTiempoFinAveria() + 1);
                 } else {
-                    nodoCentral.setTiempoFin(camion.getTiempoFinAveria() + 1.2);
+                    nodoCentral.setTiempoFin(camion.getTiempoFinAveria() + 1);
                 }
                 nodoCentral.setMes(mes);
                 nodoCentral.setAnio(anio);
@@ -731,7 +731,7 @@ public class Genetico {
         if (tipoSimulacion == 1) {
             camion.getUbicacionActual().setTiempoFin(camion.getUbicacionActual().getTiempoInicio() + 1);
         } else {
-            camion.getUbicacionActual().setTiempoFin(camion.getUbicacionActual().getTiempoInicio() + 1.2);
+            camion.getUbicacionActual().setTiempoFin(camion.getUbicacionActual().getTiempoInicio() + 1);
         }
         camion.getUbicacionActual().setEsAlmacen(true);
         posicionActual = camion.getUbicacionActual();
