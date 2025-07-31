@@ -59,6 +59,14 @@ public class PedidoService {
         return pedidoRepository.getMesesPedido();
     }
 
+    public List<Pedido> obtenerPedidosPorDia(int anio,int mes,int dia){
+        return pedidoRepository.findByAnioAndMesPedidoAndDia(anio, mes, dia);
+    }
+
+    public List<Pedido> obtenerPedidosPorHora(int anio,int mes, int dia,int hora){
+        return pedidoRepository.findByAnioAndMesPedidoAndDiaAndHora(anio,mes,dia,hora);
+    }
+
     @Transactional
     public void reiniciarPedidos(List<Pedido> pedidos) {
         if (pedidos != null && !pedidos.isEmpty()) {

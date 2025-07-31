@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cglib.core.Local;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -112,6 +113,7 @@ public class PedidoController {
         LocalDateTime fechaEntrega = pedido.getFechaDeRegistro().plusHours(pedido.getHorasLimite());
         pedido.setFechaEntrega(fechaEntrega);
         pedido.setFecDia(LocalDateTime.now());
+        pedido.setCantidadGLP(pedido.getCantidadGLP());
 
         return pedidoService.guardar(pedido);
     }
@@ -126,6 +128,33 @@ public class PedidoController {
     @ResponseBody
     public Pedido update(@RequestBody Pedido pedido) {
         return pedidoService.guardar(pedido);
+    }
+
+    @GetMapping("/actuales")
+    @ResponseBody
+    public ResponseEntity<Object> obtenerPedidosActuales(
+            @RequestParam(required = false, defaultValue = "false") boolean soloHoraActual
+    ) {
+        Map<String,Object> response = new HashMap<>();
+        try{
+            LocalDateTime ahora = LocalDateTime.now();
+            List<Pedido> pedidos;
+            if(soloHoraActual){
+                pedidos = pedidoService.obtenerPedidosPorHora(ahora.getYear(),ahora.getMonthValue(),ahora.getDayOfMonth(),ahora.getHour());
+            }else{
+                pedidos = pedidoService.obtenerPedidosPorDia(ahora.getYear(),ahora.getMonthValue(),ahora.getDayOfMonth());
+            }
+            String mensaje = pedidos.isEmpty()
+                    ? "No se encontraron pedido actuales"
+                    : "Se encontraron " + pedidos.size() + " pedidos actuales";
+            response.put("mensaje", mensaje);
+            response.put("pedidos", pedidos);
+            return ResponseEntity.ok(response);
+        }catch (Exception e){
+            response.put("mensaje","Error al obtener pedidos actuales");
+            response.put("error",e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
     }
 
     @DeleteMapping

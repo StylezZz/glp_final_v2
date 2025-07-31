@@ -29,6 +29,10 @@ public interface PedidoRepository extends JpaRepository<Pedido, Integer> {
             Integer mes_pedido
     );
 
+    List<Pedido> findByAnioAndMesPedidoAndDia(int anio,int mes,int dia);
+
+    List<Pedido> findByAnioAndMesPedidoAndDiaAndHora(int anio,int mes,int dia,int hora);
+
     List<Pedido> findByfechaDeRegistroBetween(
             @Param("fechaInicio") LocalDateTime fechaInicio,
             @Param("fechaFin") LocalDateTime fechaFin
